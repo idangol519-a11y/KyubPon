@@ -1,0 +1,124 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+/// <summary>
+/// TEMPORARY (sandbox test page, to be removed).
+/// The sandbox board: a grid of squares, each empty or holding one block.
+/// This class only stores where blocks are. The fighting rules are in SandboxCombat.
+/// </summary>
+public class SandboxBoard
+{
+    // Storage is always the largest allowed size, so resizing never has to copy blocks.
+    private readonly SandboxBlock[,] _blocks =
+        new SandboxBlock[SandboxGridSize.MaximumColumns, SandboxGridSize.MaximumRows];
+
+    /// <summary>How many squares wide the board is right now.</summary>
+    public int Columns { get; private set; }
+
+    /// <summary>How many squares tall the board is right now.</summary>
+    public int Rows { get; private set; }
+
+    /// <summary>Creates an empty board of the given size.</summary>
+    public SandboxBoard(int columns, int rows)
+    {
+        Columns = columns;
+        Rows = rows;
+    }
+
+    /// <summary>True when the position is a square of the board.</summary>
+    public bool IsInside(Vector2Int position)
+    {
+        return position.x >= 0 && position.x < Columns && position.y >= 0 && position.y < Rows;
+    }
+
+    /// <summary>The block at a position, or null if the square is empty or off the board.</summary>
+    public SandboxBlock GetBlock(Vector2Int position)
+    {
+        return IsInside(position) ? _blocks[position.x, position.y] : null;
+    }
+
+    /// <summary>Puts a block on an empty square.</summary>
+    public void Place(SandboxBlock block, Vector2Int position)
+    {
+        _blocks[position.x, position.y] = block;
+        block.Position = position;
+    }
+
+    /// <summary>Takes a block off the board.</summary>
+    public void Remove(SandboxBlock block)
+    {
+        _blocks[block.Position.x, block.Position.y] = null;
+    }
+
+    /// <summary>Moves a block to another empty square.</summary>
+    public void Move(SandboxBlock block, Vector2Int position)
+    {
+        Remove(block);
+        Place(block, position);
+    }
+
+    /// <summary>Removes every block.</summary>
+    public void Clear()
+    {
+        System.Array.Clear(_blocks, 0, _blocks.Length);
+    }
+
+    /// <summary>
+    /// Changes the board size. Blocks left outside the new size are removed.
+    /// They do not count as destroyed in battle.
+    /// </summary>
+    public void Resize(int columns, int rows)
+    {
+        for (int x = 0; x < SandboxGridSize.MaximumColumns; x++)
+        {
+            for (int y = 0; y < SandboxGridSize.MaximumRows; y++)
+            {
+                if (x >= columns || y >= rows)
+                {
+                    _blocks[x, y] = null;
+                }
+            }
+        }
+
+        Columns = columns;
+        Rows = rows;
+    }
+
+    /// <summary>Counts the blocks of one side.</summary>
+    public int CountBlocks(SandboxSide side)
+    {
+        int count = 0;
+        for (int x = 0; x < Columns; x++)
+        {
+            for (int y = 0; y < Rows; y++)
+            {
+                if (_blocks[x, y] != null && _blocks[x, y].Side == side)
+                {
+                    count++;
+                }
+            }
+        }
+
+        return count;
+    }
+
+    /// <summary>
+    /// Fills the list with every empty square, or with every square that holds
+    /// a block. The caller passes the list in so no new list is created each turn.
+    /// </summary>
+    public void CollectPositions(List<Vector2Int> positions, bool wantEmptySquares)
+    {
+        positions.Clear();
+        for (int y = 0; y < Rows; y++)
+        {
+            for (int x = 0; x < Columns; x++)
+            {
+                bool isEmpty = _blocks[x, y] == null;
+                if (isEmpty == wantEmptySquares)
+                {
+                    positions.Add(new Vector2Int(x, y));
+                }
+            }
+        }
+    }
+}

@@ -6,6 +6,22 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-06
+
+### Added
+- **Temporary** turn-based battle on the Sandbox page. Each turn you drag one block onto an empty square, then the enemy places one of its own, then every square activates in order starting from a random block.
+- Enemy blocks: every block kind has an enemy copy, drawn darker with an X on it. The enemy prefers squares next to your blocks.
+- Blocks have HP, shown as a number on each block. A block at 0 HP is destroyed.
+- A battle panel that tracks the turn number, blocks destroyed on each side, and blocks on the grid.
+- PASS (skip placing) and RESET (clear the battle) buttons.
+
+### Changed
+- The Sandbox block rules are now about fighting instead of score: red hits each enemy next to it for 2 HP, blue pushes each enemy next to it one square (off the edge destroys it, a blocked push costs 1 HP), green heals each friend next to it by 2 HP, yellow hits every enemy in its row for 1 HP.
+- Placed blocks can no longer be dragged around or removed by hand.
+
+### Removed
+- The Sandbox score counter and SCORE button, replaced by the battle.
+
 ## [0.5.0] - 2026-10-06
 
 ### Added

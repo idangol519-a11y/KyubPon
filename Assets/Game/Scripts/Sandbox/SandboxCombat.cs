@@ -1,0 +1,140 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+/// <summary>
+/// TEMPORARY (sandbox test page, to be removed).
+/// The fighting rules of the sandbox: what each ability does to the board.
+/// Plain C# with no screen code, so the rules are in one place and easy to change.
+/// Both sides follow the same rules; "opposing" means a block of the other side.
+/// </summary>
+public static class SandboxCombat
+{
+    /// <summary>HP a Strike removes from each opposing block next to it.</summary>
+    public const int StrikeDamage = 2;
+
+    /// <summary>HP a Push removes when the pushed block has another block behind it.</summary>
+    public const int BlockedPushDamage = 1;
+
+    /// <summary>HP a Heal gives to each friendly block next to it.</summary>
+    public const int HealAmount = 2;
+
+    /// <summary>HP a Row Shot removes from each opposing block in the row.</summary>
+    public const int RowShotDamage = 1;
+
+    /// <summary>The four squares next to a block: up, down, left, right.</summary>
+    public static readonly Vector2Int[] Directions =
+    {
+        Vector2Int.up, Vector2Int.down, Vector2Int.left, Vector2Int.right
+    };
+
+    /// <summary>
+    /// Makes one block use its ability. Blocks destroyed by it are taken off
+    /// the board and added to the "destroyed" list so the caller can count them.
+    /// </summary>
+    public static void Activate(SandboxBoard board, SandboxBlock block, List<SandboxBlock> destroyed)
+    {
+        switch (block.Kind.Ability)
+        {
+            case SandboxAbility.Strike:
+                StrikeNeighbours(board, block, destroyed);
+                break;
+            case SandboxAbility.Push:
+                PushNeighbours(board, block, destroyed);
+                break;
+            case SandboxAbility.Heal:
+                HealNeighbours(board, block);
+                break;
+            case SandboxAbility.RowShot:
+                ShootRow(board, block, destroyed);
+                break;
+        }
+    }
+
+    private static void StrikeNeighbours(SandboxBoard board, SandboxBlock block, List<SandboxBlock> destroyed)
+    {
+        foreach (Vector2Int direction in Directions)
+        {
+            SandboxBlock target = board.GetBlock(block.Position + direction);
+            if (IsOpponent(block, target))
+            {
+                Damage(board, target, StrikeDamage, destroyed);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Each opposing neighbour is shoved one square further away. If that square is
+    /// off the board the block is destroyed; if another block is in the way,
+    /// the pushed block is hurt instead of moving.
+    /// </summary>
+    private static void PushNeighbours(SandboxBoard board, SandboxBlock block, List<SandboxBlock> destroyed)
+    {
+        foreach (Vector2Int direction in Directions)
+        {
+            SandboxBlock target = board.GetBlock(block.Position + direction);
+            if (!IsOpponent(block, target))
+            {
+                continue;
+            }
+
+            Vector2Int destination = target.Position + direction;
+            if (!board.IsInside(destination))
+            {
+                target.Destroy();
+                RemoveDestroyed(board, target, destroyed);
+            }
+            else if (board.GetBlock(destination) == null)
+            {
+                board.Move(target, destination);
+            }
+            else
+            {
+                Damage(board, target, BlockedPushDamage, destroyed);
+            }
+        }
+    }
+
+    private static void HealNeighbours(SandboxBoard board, SandboxBlock block)
+    {
+        foreach (Vector2Int direction in Directions)
+        {
+            SandboxBlock target = board.GetBlock(block.Position + direction);
+            if (target != null && target.Side == block.Side)
+            {
+                target.Heal(HealAmount);
+            }
+        }
+    }
+
+    private static void ShootRow(SandboxBoard board, SandboxBlock block, List<SandboxBlock> destroyed)
+    {
+        for (int column = 0; column < board.Columns; column++)
+        {
+            SandboxBlock target = board.GetBlock(new Vector2Int(column, block.Position.y));
+            if (IsOpponent(block, target))
+            {
+                Damage(board, target, RowShotDamage, destroyed);
+            }
+        }
+    }
+
+    private static bool IsOpponent(SandboxBlock block, SandboxBlock other)
+    {
+        return other != null && other.Side != block.Side;
+    }
+
+    private static void Damage(SandboxBoard board, SandboxBlock target, int amount, List<SandboxBlock> destroyed)
+    {
+        target.TakeDamage(amount);
+        RemoveDestroyed(board, target, destroyed);
+    }
+
+    private static void RemoveDestroyed(SandboxBoard board, SandboxBlock target, List<SandboxBlock> destroyed)
+    {
+        if (!target.IsAlive)
+        {
+            board.Remove(target);
+            destroyed.Add(target);
+        }
+    }
+}

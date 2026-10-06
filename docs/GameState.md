@@ -1,6 +1,6 @@
 # Game State
 
-Current version: **0.5.0**
+Current version: **0.6.0**
 
 ## Built
 - Unity 2D project setup (Force Text serialization, Visible Meta Files, 2D editor mode).
@@ -19,10 +19,11 @@ Current version: **0.5.0**
 ## Temporary: Sandbox test page (to be removed)
 A test page for trying out a grid and drag-and-drop. It is not part of the game design.
 - Opened by the SANDBOX button on the Home screen. Grid size is changed with the on-screen arrows; the limits (minimum 5 by 4, maximum 12 by 8) are constants in `SandboxGridSize.cs`.
-- Scoring test: each cube color has a rule (red +10, blue +5 per neighbouring cube, green doubles the score so far, yellow +1 per cube on the grid). SCORE starts at a random cube and visits every square in reading order. The rules are in `SandboxScoring.cs` and `SandboxCubeKind.cs`; the note on the page is generated from them.
-- The scoring start is random and not seeded, and there are no automated tests for it, because the page is temporary.
+- Battle test: each turn the player drags one block onto an empty square, the enemy places one (drawn with an X), then every square activates in reading order starting from a random block. Blocks have HP; the panel on the right counts destroyed blocks on both sides.
+- Block rules: red -2 HP to each enemy next to it; blue pushes each enemy next to it one square (off the edge = destroyed, blocked = -1 HP); green +2 HP to each friend next to it; yellow -1 HP to every enemy in its row. The numbers are constants in `SandboxCombat.cs` and the block list is in `SandboxCubeKind.cs`; the rules note on the page is generated from them.
+- The rules are plain C# (`SandboxBoard`, `SandboxBlock`, `SandboxCombat`, `SandboxEnemy`), separate from the screen code, so they can be a starting point for the real battle later.
+- Not done because the page is temporary: no automated tests, the random start is not seeded, block data is in C# instead of JSON, and there is no win or lose state.
 - Mouse drag only. It does not support the "press to pick up, press to place" controller style that the real game will need.
-
 To remove it:
 1. Delete the folder `Assets/Game/Scripts/Sandbox/`, the file `Assets/Game/Scripts/Editor/SandboxSceneBuilder.cs`, and the scene `Assets/Game/Scenes/Sandbox.unity` (with their `.meta` files).
 2. In `SceneBuilderTools.cs`, delete `SandboxScenePath` and its line in `ApplyBuildScenes`.
