@@ -2,8 +2,6 @@ using System.IO;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
 
 /// <summary>
@@ -61,7 +59,7 @@ public static class HomeScreenSceneBuilder
         Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
         SceneBuilderTools.CreateCamera();
-        CreateEventSystem();
+        SceneBuilderTools.CreateEventSystem();
 
         Transform canvas = ui.CreateCanvas("HomeCanvas");
         HomeScreen homeScreen = canvas.gameObject.AddComponent<HomeScreen>();
@@ -79,18 +77,6 @@ public static class HomeScreenSceneBuilder
         Debug.Log($"[Info] Created {ScenePath} and updated the build scene list.");
     }
 
-    /// <summary>
-    /// The EventSystem passes mouse, keyboard, and controller input to the UI.
-    /// Without it, buttons are drawn but cannot be pressed.
-    /// </summary>
-    private static void CreateEventSystem()
-    {
-        GameObject eventSystemObject = new GameObject("EventSystem");
-        eventSystemObject.AddComponent<EventSystem>();
-        // This module reads input through Unity's Input System package. With no custom
-        // setup it uses Unity's default UI actions: mouse, keyboard, and controller.
-        eventSystemObject.AddComponent<InputSystemUIInputModule>();
-    }
 
     private static void BuildMainMenu(MenuUiBuilder ui, Transform canvas, SerializedObject homeScreenData)
     {
@@ -102,6 +88,8 @@ public static class HomeScreenSceneBuilder
         SceneBuilderTools.SetReference(homeScreenData, "_newGameButton", ui.CreateTextButton(menu, "NewGameButton", "NEW GAME", ButtonFontSize));
         SceneBuilderTools.SetReference(homeScreenData, "_continueButton", ui.CreateTextButton(menu, "ContinueButton", "CONTINUE", ButtonFontSize));
         SceneBuilderTools.SetReference(homeScreenData, "_settingsButton", ui.CreateTextButton(menu, "SettingsButton", "SETTINGS", ButtonFontSize));
+        // TEMPORARY: the Sandbox button is a test feature and will be removed.
+        SceneBuilderTools.SetReference(homeScreenData, "_sandboxButton", ui.CreateTextButton(menu, "SandboxButton", "SANDBOX", ButtonFontSize));
         SceneBuilderTools.SetReference(homeScreenData, "_quitButton", ui.CreateTextButton(menu, "QuitButton", "QUIT", ButtonFontSize));
     }
 

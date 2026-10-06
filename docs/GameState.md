@@ -1,6 +1,6 @@
 # Game State
 
-Current version: **0.3.0**
+Current version: **0.4.0**
 
 ## Built
 - Unity 2D project setup (Force Text serialization, Visible Meta Files, 2D editor mode).
@@ -15,6 +15,17 @@ Current version: **0.3.0**
 - Version tooling: `tools/Set-GameVersion.ps1` keeps the version identical in every file (see `docs/Releasing.md`).
 
 - Git: one long-lived branch, `main`. Feature branches are merged into it and deleted.
+
+## Temporary: Sandbox test page (to be removed)
+A test page for trying out a grid and drag-and-drop. It is not part of the game design.
+- Opened by the SANDBOX button on the Home screen. Grid size is changed with the on-screen arrows; the limits (minimum 5 by 4, maximum 12 by 8) are constants in `SandboxGridSize.cs`.
+- Mouse drag only. It does not support the "press to pick up, press to place" controller style that the real game will need.
+
+To remove it:
+1. Delete the folder `Assets/Game/Scripts/Sandbox/`, the file `Assets/Game/Scripts/Editor/SandboxSceneBuilder.cs`, and the scene `Assets/Game/Scenes/Sandbox.unity` (with their `.meta` files).
+2. In `SceneBuilderTools.cs`, delete `SandboxScenePath` and its line in `ApplyBuildScenes`.
+3. In `HomeScreen.cs` and `HomeScreenSceneBuilder.cs`, delete the lines marked `TEMPORARY`, plus `OpenSandbox` and `SandboxSceneName`.
+4. Run **KyubPon > Rebuild Home Screen Scene**.
 
 ## In progress
 - Nothing yet.

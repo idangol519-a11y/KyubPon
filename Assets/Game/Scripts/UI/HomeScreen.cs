@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
 
 /// <summary>
 /// The Home screen: the first screen the player sees.
@@ -10,11 +11,15 @@ using UnityEngine.EventSystems;
 public class HomeScreen : MonoBehaviour
 {
     private const string GameTitle = "KyubPon";
+    private const string SandboxSceneName = "Sandbox";
 
     [SerializeField] private UnityEngine.UI.Button _newGameButton;
     [SerializeField] private UnityEngine.UI.Button _continueButton;
     [SerializeField] private UnityEngine.UI.Button _settingsButton;
     [SerializeField] private UnityEngine.UI.Button _quitButton;
+
+    // TEMPORARY: opens the sandbox test page. Remove with the Sandbox scripts.
+    [SerializeField] private UnityEngine.UI.Button _sandboxButton;
     [SerializeField] private UnityEngine.UI.Text _versionLabel;
     [SerializeField] private GameObject _mainMenu;
     [SerializeField] private SettingsPanel _settingsPanel;
@@ -29,6 +34,7 @@ public class HomeScreen : MonoBehaviour
         DisableUnfinishedButtons();
         _settingsButton.onClick.AddListener(OpenSettings);
         _quitButton.onClick.AddListener(QuitGame);
+        _sandboxButton.onClick.AddListener(OpenSandbox);
         _settingsPanel.Closed += ShowMainMenu;
 
         // Application.version reads "Version" from Project Settings > Player,
@@ -56,6 +62,11 @@ public class HomeScreen : MonoBehaviour
     {
         _mainMenu.SetActive(false);
         _settingsPanel.Open(_settings);
+    }
+
+    private void OpenSandbox()
+    {
+        SceneManager.LoadScene(SandboxSceneName);
     }
 
     private void ShowMainMenu()
