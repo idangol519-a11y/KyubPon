@@ -23,7 +23,13 @@ public static class SandboxSceneBuilder
     private const float HeadingOffsetFromTop = 50f;
     private const float NoteOffsetFromTop = 140f;
     private const float ControlsOffsetFromTop = 190f;
-    private const float GridOffsetFromCenter = -20f;
+    private const float ScoreOffsetFromTop = 256f;
+    private const float GridOffsetFromCenter = -30f;
+    private const float RulesMarginFromLeft = 40f;
+
+    // The pixel font's lines sit very close together, so wrapped text needs extra room.
+    private const float RulesLineSpacing = 1.6f;
+    private const float BottomButtonOffsetFromCenter = 220f;
     private const float PaletteOffsetFromBottom = 130f;
     private const float BackOffsetFromBottom = 36f;
     private const float RowSpacing = 32f;
@@ -36,7 +42,10 @@ public static class SandboxSceneBuilder
     private static readonly Vector2 HeadingSize = new Vector2(1600f, 72f);
     private static readonly Vector2 NoteSize = new Vector2(1800f, 32f);
     private static readonly Vector2 ControlsSize = new Vector2(1800f, 56f);
-    private static readonly Vector2 GridAreaSize = new Vector2(1400f, 560f);
+    private static readonly Vector2 LeftCenter = new Vector2(0f, 0.5f);
+    private static readonly Vector2 ScoreSize = new Vector2(1000f, 40f);
+    private static readonly Vector2 GridAreaSize = new Vector2(900f, 520f);
+    private static readonly Vector2 RulesSize = new Vector2(450f, 620f);
     private static readonly Vector2 PaletteSize = new Vector2(1600f, 100f);
     private static readonly Vector2 BackSize = new Vector2(400f, 56f);
 
@@ -75,12 +84,10 @@ public static class SandboxSceneBuilder
 
         BuildHeading(ui, canvas);
         BuildSizeControls(ui, canvas, data);
+        BuildScoreAndRules(ui, canvas, data);
         BuildGridArea(canvas, data);
         BuildPalette(ui, canvas, data);
-
-        UnityEngine.UI.Button back = ui.CreateTextButton(canvas, "BackButton", "BACK", ButtonFontSize);
-        SceneBuilderTools.PlaceAtEdge((RectTransform)back.transform, BottomCenter, new Vector2(0f, BackOffsetFromBottom), BackSize);
-        SceneBuilderTools.SetReference(data, "_backButton", back);
+        BuildBottomButtons(ui, canvas, data);
 
         // Dragged cubes are moved under the canvas itself so they draw on top of everything.
         SceneBuilderTools.SetReference(data, "_dragLayer", canvas);
@@ -128,6 +135,36 @@ public static class SandboxSceneBuilder
         SceneBuilderTools.SetReference(data, valueField, value);
 
         SceneBuilderTools.SetReference(data, moreField, ui.CreateTextButton(row, "More" + objectName + "Button", ">", ControlFontSize));
+    }
+
+    /// <summary>
+    /// The score line above the grid and the rules note on the left.
+    /// Their text is filled in by SandboxScreen when the game runs.
+    /// </summary>
+    private static void BuildScoreAndRules(MenuUiBuilder ui, Transform canvas, SerializedObject data)
+    {
+        UnityEngine.UI.Text score = ui.CreateLabel(canvas, "ScoreLabel", "SCORE: 0", ControlFontSize);
+        SceneBuilderTools.PlaceAtEdge(score.rectTransform, TopCenter, new Vector2(0f, -ScoreOffsetFromTop), ScoreSize);
+        SceneBuilderTools.SetReference(data, "_scoreLabel", score);
+
+        // The rules are several lines long, so this label wraps its text and starts at the top-left.
+        UnityEngine.UI.Text rules = ui.CreateLabel(canvas, "RulesLabel", "SCORING RULES", NoteFontSize);
+        rules.alignment = TextAnchor.UpperLeft;
+        rules.horizontalOverflow = HorizontalWrapMode.Wrap;
+        rules.lineSpacing = RulesLineSpacing;
+        SceneBuilderTools.PlaceAtEdge(rules.rectTransform, LeftCenter, new Vector2(RulesMarginFromLeft, GridOffsetFromCenter), RulesSize);
+        SceneBuilderTools.SetReference(data, "_rulesLabel", rules);
+    }
+
+    private static void BuildBottomButtons(MenuUiBuilder ui, Transform canvas, SerializedObject data)
+    {
+        UnityEngine.UI.Button back = ui.CreateTextButton(canvas, "BackButton", "BACK", ButtonFontSize);
+        SceneBuilderTools.PlaceAtEdge((RectTransform)back.transform, BottomCenter, new Vector2(-BottomButtonOffsetFromCenter, BackOffsetFromBottom), BackSize);
+        SceneBuilderTools.SetReference(data, "_backButton", back);
+
+        UnityEngine.UI.Button score = ui.CreateTextButton(canvas, "ScoreButton", "SCORE", ButtonFontSize);
+        SceneBuilderTools.PlaceAtEdge((RectTransform)score.transform, BottomCenter, new Vector2(BottomButtonOffsetFromCenter, BackOffsetFromBottom), BackSize);
+        SceneBuilderTools.SetReference(data, "_scoreButton", score);
     }
 
     /// <summary>An empty box in the middle of the screen. The grid cells are created inside it when the game runs.</summary>
