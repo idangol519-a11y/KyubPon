@@ -1,6 +1,6 @@
 # Game State
 
-Current version: **0.4.0**
+Current version: **0.5.0**
 
 ## Built
 - Unity 2D project setup (Force Text serialization, Visible Meta Files, 2D editor mode).
@@ -19,6 +19,8 @@ Current version: **0.4.0**
 ## Temporary: Sandbox test page (to be removed)
 A test page for trying out a grid and drag-and-drop. It is not part of the game design.
 - Opened by the SANDBOX button on the Home screen. Grid size is changed with the on-screen arrows; the limits (minimum 5 by 4, maximum 12 by 8) are constants in `SandboxGridSize.cs`.
+- Scoring test: each cube color has a rule (red +10, blue +5 per neighbouring cube, green doubles the score so far, yellow +1 per cube on the grid). SCORE starts at a random cube and visits every square in reading order. The rules are in `SandboxScoring.cs` and `SandboxCubeKind.cs`; the note on the page is generated from them.
+- The scoring start is random and not seeded, and there are no automated tests for it, because the page is temporary.
 - Mouse drag only. It does not support the "press to pick up, press to place" controller style that the real game will need.
 
 To remove it:

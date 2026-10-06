@@ -6,6 +6,13 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-06
+
+### Added
+- **Temporary** scoring test on the Sandbox page. Each cube color has a scoring rule: red adds 10 points, blue adds 5 for each cube next to it, green doubles the score so far, yellow adds 1 for every cube on the grid.
+- A rules note on the left of the Sandbox page that lists what each color does.
+- A SCORE button. A scoring run starts at a random cube, then visits every square of the grid in order, lighting each one up. The running score and the final score are shown above the grid.
+
 ## [0.4.0] - 2026-10-06
 
 ### Added

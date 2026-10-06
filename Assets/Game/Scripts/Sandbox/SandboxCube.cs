@@ -24,14 +24,14 @@ public class SandboxCube : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
     private SandboxCell _cell;
     private SandboxCube _draggedCube;
 
-    /// <summary>The cube's color.</summary>
-    public Color Color => _image.color;
+    /// <summary>What kind of cube this is: its color and scoring rule.</summary>
+    public SandboxCubeKind Kind { get; private set; }
 
     /// <summary>
     /// Creates a cube. The drag layer is the object cubes are moved under while
     /// being dragged, so they are drawn on top of everything else.
     /// </summary>
-    public static SandboxCube Create(Transform parent, Color color, RectTransform dragLayer, bool isPaletteSource)
+    public static SandboxCube Create(Transform parent, SandboxCubeKind kind, RectTransform dragLayer, bool isPaletteSource)
     {
         GameObject cubeObject = new GameObject("Cube", typeof(RectTransform));
         cubeObject.transform.SetParent(parent, false);
@@ -39,7 +39,8 @@ public class SandboxCube : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
         SandboxCube cube = cubeObject.AddComponent<SandboxCube>();
         cube._rectTransform = (RectTransform)cubeObject.transform;
         cube._image = cubeObject.AddComponent<UnityEngine.UI.Image>();
-        cube._image.color = color;
+        cube._image.color = kind.Color;
+        cube.Kind = kind;
         cube._dragLayer = dragLayer;
         cube._isPaletteSource = isPaletteSource;
         return cube;
@@ -49,7 +50,7 @@ public class SandboxCube : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndD
     public void OnBeginDrag(PointerEventData eventData)
     {
         Vector2 size = _rectTransform.rect.size;
-        _draggedCube = _isPaletteSource ? Create(_dragLayer, Color, _dragLayer, false) : this;
+        _draggedCube = _isPaletteSource ? Create(_dragLayer, Kind, _dragLayer, false) : this;
         _draggedCube.PickUp(size, eventData.position);
     }
 
