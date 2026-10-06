@@ -1,4 +1,4 @@
-﻿# Releasing a version
+# Releasing a version
 
 How the version number is managed, and the steps to publish a new version.
 
@@ -27,31 +27,30 @@ Names always match the number:
 
 | Thing | Name |
 |---|---|
-| Release branch (optional) | `release/0.3.0` |
 | Merge commit on `main` | `Release 0.3.0` |
 | Git tag | `v0.3.0` |
 | Changelog heading | `## [0.3.0] - 2026-10-06` |
 
 ## Steps
 
-While working, list every change under `## [Unreleased]` in `CHANGELOG.md`.
-When `develop` is ready to release:
+The repository has one long-lived branch, `main`. Work on a short-lived
+`feature/<short-name>` branch and list every change under `## [Unreleased]`
+in `CHANGELOG.md`. When the feature is ready to release:
 
 ```powershell
-# 1. Set the new version in every file. Unity picks the change up
-#    the next time its window is focused.
-git checkout develop
+# 1. On the feature branch, set the new version in every file. Unity picks
+#    the change up the next time its window is focused.
 .\tools\Set-GameVersion.ps1 -Version 0.3.0
 
 # 2. Read CHANGELOG.md and tidy the notes, then commit.
 git commit -am "Bump version to 0.3.0"
 
-# 3. Merge to main, tag, and push.
+# 3. Merge to main, tag, push, and delete the feature branch.
 git checkout main
-git merge --no-ff develop -m "Release 0.3.0"
+git merge --no-ff feature/<short-name> -m "Release 0.3.0"
 git tag -a v0.3.0 -m "KyubPon 0.3.0"
-git push origin develop main v0.3.0
-git checkout develop
+git push origin main v0.3.0
+git branch -d feature/<short-name>
 
 # 4. Confirm everything agrees, including the tag.
 .\tools\Set-GameVersion.ps1 -Check
