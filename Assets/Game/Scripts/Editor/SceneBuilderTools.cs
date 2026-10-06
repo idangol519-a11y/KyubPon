@@ -1,5 +1,7 @@
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 
 /// <summary>
 /// Things every scene builder needs: the pixel font, the camera, the version
@@ -13,6 +15,9 @@ public static class SceneBuilderTools
 
     /// <summary>The Home screen with the main menu and settings.</summary>
     public const string HomeScreenScenePath = "Assets/Game/Scenes/HomeScreen.unity";
+
+    /// <summary>TEMPORARY: the sandbox test page. Remove together with the Sandbox scripts.</summary>
+    public const string SandboxScenePath = "Assets/Game/Scenes/Sandbox.unity";
 
     private const string FontPath = "Assets/Game/Fonts/PressStart2P/PressStart2P-Regular.ttf";
     private const string FallbackFontName = "LegacyRuntime.ttf";
@@ -31,7 +36,8 @@ public static class SceneBuilderTools
         EditorBuildSettings.scenes = new[]
         {
             new EditorBuildSettingsScene(DropScreenScenePath, true),
-            new EditorBuildSettingsScene(HomeScreenScenePath, true)
+            new EditorBuildSettingsScene(HomeScreenScenePath, true),
+            new EditorBuildSettingsScene(SandboxScenePath, true)
         };
         AssetDatabase.SaveAssets();
     }
@@ -70,6 +76,19 @@ public static class SceneBuilderTools
         camera.clearFlags = CameraClearFlags.SolidColor;
         camera.backgroundColor = BackgroundColor;
         cameraObject.AddComponent<AudioListener>();
+    }
+
+    /// <summary>
+    /// The EventSystem passes mouse, keyboard, and controller input to the UI.
+    /// Without it, buttons are drawn but cannot be pressed.
+    /// </summary>
+    public static void CreateEventSystem()
+    {
+        GameObject eventSystemObject = new GameObject("EventSystem");
+        eventSystemObject.AddComponent<EventSystem>();
+        // This module reads input through Unity's Input System package. With no custom
+        // setup it uses Unity's default UI actions: mouse, keyboard, and controller.
+        eventSystemObject.AddComponent<InputSystemUIInputModule>();
     }
 
     /// <summary>

@@ -7,7 +7,7 @@ places its own. Blocks act through their stats and abilities, and abilities can
 trigger each other in chain reactions. Between levels you visit a shop or an
 event, and the run continues through harder and harder levels until you lose.
 
-**Status:** early development, version `0.3.0`. The project currently contains
+**Status:** early development, version `0.4.0`. The project currently contains
 the Unity setup, a title screen, and the Home screen with a settings panel. See
 [docs/GameState.md](docs/GameState.md) for what is built and what is in progress.
 
@@ -34,10 +34,11 @@ the Unity setup, a title screen, and the Home screen with a settings panel. See
 ```
 Assets/Game/
   Fonts/       Fonts, each with its license file
-  Scenes/      Unity scenes (DropScreen title screen, HomeScreen)
+  Scenes/      Unity scenes (DropScreen title screen, HomeScreen, temporary Sandbox)
   Scripts/
     Core/      Settings and other shared game code
     Editor/    Editor-only tools (scene builders)
+    Sandbox/   Temporary test page (to be removed)
     UI/        Screens and UI components
 Packages/      Unity package manifest
 ProjectSettings/

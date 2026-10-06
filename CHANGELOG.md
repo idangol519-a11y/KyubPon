@@ -6,6 +6,11 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-06
+
+### Added
+- **Temporary** Sandbox test page, opened from a new SANDBOX button on the Home screen. It has a grid that can be resized with on-screen arrows (minimum 5 by 4, maximum 12 by 8) and four colored cubes that can be dragged into the grid, moved between cells, and removed by dropping them outside it. This page is for testing only and will be removed.
+
 ## [0.3.0] - 2026-10-06
 
 ### Added
