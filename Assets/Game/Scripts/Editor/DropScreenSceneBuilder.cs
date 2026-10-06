@@ -5,15 +5,25 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// Builds the DropScreen scene through code instead of hand-editing scene files.
-/// It runs once automatically the first time the project is opened, and can be
-/// run again from the menu: KyubPon > Rebuild Drop Screen Scene.
+/// Builds the DropScreen (title screen) scene through code instead of hand-editing
+/// scene files. It runs once automatically when the scene file is missing, and can
+/// be run again from the menu: KyubPon > Rebuild Drop Screen Scene.
+/// Rebuilding replaces the scene, so change the layout here rather than in the Editor.
 /// </summary>
 [InitializeOnLoad]
 public static class DropScreenSceneBuilder
 {
-    private const string ScenePath = "Assets/Game/Scenes/DropScreen.unity";
-    private static readonly Color BackgroundColor = new Color(0.08f, 0.08f, 0.12f);
+    private const string ScenePath = SceneBuilderTools.DropScreenScenePath;
+
+    // Press Start 2P is drawn on an 8-pixel grid, so sizes that are multiples of 8 stay sharp.
+    private const int TitleFontSize = 128;
+    private const int PromptFontSize = 32;
+    private const float PromptOffsetFromBottom = 260f;
+
+    private static readonly Vector2 ScreenCenter = new Vector2(0.5f, 0.5f);
+    private static readonly Vector2 BottomCenter = new Vector2(0.5f, 0f);
+    private static readonly Vector2 TitleSize = new Vector2(1800f, 160f);
+    private static readonly Vector2 PromptSize = new Vector2(1600f, 48f);
 
     static DropScreenSceneBuilder()
     {
@@ -32,28 +42,34 @@ public static class DropScreenSceneBuilder
     }
 
     /// <summary>
-    /// Creates the scene with a 2D camera and the DropScreen object,
-    /// saves it, opens it, and makes it the first scene in the build.
+    /// Creates the scene with a camera, the big title, the "press any key" prompt,
+    /// and the version label, saves it, opens it, and updates the build scene list.
     /// </summary>
     [MenuItem("KyubPon/Rebuild Drop Screen Scene")]
     public static void BuildScene()
     {
+        MenuUiBuilder ui = new MenuUiBuilder(SceneBuilderTools.LoadPixelFont());
         Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
 
-        GameObject cameraObject = new GameObject("Main Camera");
-        cameraObject.tag = "MainCamera";
-        cameraObject.transform.position = new Vector3(0f, 0f, -10f);
-        Camera camera = cameraObject.AddComponent<Camera>();
-        camera.orthographic = true;
-        camera.clearFlags = CameraClearFlags.SolidColor;
-        camera.backgroundColor = BackgroundColor;
-        cameraObject.AddComponent<AudioListener>();
+        SceneBuilderTools.CreateCamera();
 
-        new GameObject("DropScreen").AddComponent<DropScreen>();
+        Transform canvas = ui.CreateCanvas("DropCanvas");
+        DropScreen dropScreen = canvas.gameObject.AddComponent<DropScreen>();
+        SerializedObject dropScreenData = new SerializedObject(dropScreen);
+
+        UnityEngine.UI.Text title = ui.CreateLabel(canvas, "Title", "KYUBPON", TitleFontSize);
+        SceneBuilderTools.PlaceAtEdge(title.rectTransform, ScreenCenter, Vector2.zero, TitleSize);
+
+        UnityEngine.UI.Text prompt = ui.CreateLabel(canvas, "Prompt", "PRESS ANY KEY", PromptFontSize);
+        SceneBuilderTools.PlaceAtEdge(prompt.rectTransform, BottomCenter, new Vector2(0f, PromptOffsetFromBottom), PromptSize);
+
+        SceneBuilderTools.SetReference(dropScreenData, "_prompt", prompt);
+        SceneBuilderTools.SetReference(dropScreenData, "_versionLabel", SceneBuilderTools.CreateVersionLabel(ui, canvas));
+        dropScreenData.ApplyModifiedPropertiesWithoutUndo();
 
         Directory.CreateDirectory(Path.GetDirectoryName(ScenePath));
         EditorSceneManager.SaveScene(scene, ScenePath);
-        EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
-        Debug.Log($"[Info] Created {ScenePath} and set it as the first build scene.");
+        SceneBuilderTools.ApplyBuildScenes();
+        Debug.Log($"[Info] Created {ScenePath} and updated the build scene list.");
     }
 }

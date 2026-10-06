@@ -6,6 +6,16 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-10-06
+
+### Added
+- Title screen (the DropScreen scene) is back in the game. It shows the game name and "PRESS ANY KEY", then opens the Home screen. Works with keyboard, mouse, controller, and touch.
+
+### Changed
+- The build now contains two scenes in order: DropScreen (title), then HomeScreen.
+- The title screen uses the same pixel font and scaling as the Home screen instead of Unity's basic IMGUI text.
+- The repository now has a single long-lived branch, `main`. `develop` and old feature branches were removed.
+
 ## [0.2.1] - 2026-10-06
 
 ### Added

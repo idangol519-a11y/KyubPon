@@ -1,61 +1,79 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
 
 /// <summary>
-/// The blank landing screen shown when the game starts.
-/// For now it only shows the game name and the version number,
-/// so we can confirm the build runs and which version it is.
+/// The title screen: the first screen shown when the game starts.
+/// It shows the game name and waits for the player to press any key,
+/// mouse button, or controller button, then opens the Home screen.
 /// </summary>
 public class DropScreen : MonoBehaviour
 {
     private const string GameTitle = "KyubPon";
-    private const int TitleFontSize = 64;
-    private const int VersionFontSize = 18;
-    private const float VersionMargin = 12f;
+    private const string HomeScreenSceneName = "HomeScreen";
+    private const float PromptBlinkSeconds = 0.6f;
 
-    private GUIStyle _titleStyle;
-    private GUIStyle _versionStyle;
+    [SerializeField] private UnityEngine.UI.Text _prompt;
+    [SerializeField] private UnityEngine.UI.Text _versionLabel;
+
+    private bool _isLeaving;
 
     private void Start()
     {
         // Application.version reads "Version" from Project Settings > Player,
         // so the version number only needs to be changed in one place.
+        _versionLabel.text = $"v{Application.version}";
         Debug.Log($"[Info] {GameTitle} v{Application.version} started on {Application.platform}");
     }
 
-    private void OnGUI()
+    private void Update()
     {
-        CreateStylesIfNeeded();
+        BlinkPrompt();
 
-        GUI.Label(new Rect(0, 0, Screen.width, Screen.height), GameTitle, _titleStyle);
+        if (!_isLeaving && AnyButtonPressed())
+        {
+            // Loading takes a moment; this stops a second press from loading twice.
+            _isLeaving = true;
+            SceneManager.LoadScene(HomeScreenSceneName);
+        }
+    }
 
-        // Version in the bottom-right corner, as the project guidelines ask.
-        Rect versionArea = new Rect(0, 0, Screen.width - VersionMargin, Screen.height - VersionMargin);
-        GUI.Label(versionArea, $"v{Application.version}", _versionStyle);
+    /// <summary>Shows and hides the prompt in a steady rhythm so it catches the eye.</summary>
+    private void BlinkPrompt()
+    {
+        bool visible = Mathf.FloorToInt(Time.unscaledTime / PromptBlinkSeconds) % 2 == 0;
+        if (_prompt.enabled != visible)
+        {
+            _prompt.enabled = visible;
+        }
     }
 
     /// <summary>
-    /// GUI styles can only be created inside OnGUI, so we build them once on first use.
+    /// True on the frame the player presses a keyboard key, a mouse button,
+    /// a controller button, or touches the screen. A device is null when it
+    /// is not connected, so each one is checked first.
     /// </summary>
-    private void CreateStylesIfNeeded()
+    private static bool AnyButtonPressed()
     {
-        if (_titleStyle != null)
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard != null && keyboard.anyKey.wasPressedThisFrame)
         {
-            return;
+            return true;
         }
 
-        _titleStyle = new GUIStyle(GUI.skin.label)
+        Mouse mouse = Mouse.current;
+        if (mouse != null && (mouse.leftButton.wasPressedThisFrame || mouse.rightButton.wasPressedThisFrame))
         {
-            alignment = TextAnchor.MiddleCenter,
-            fontSize = TitleFontSize,
-            fontStyle = FontStyle.Bold
-        };
-        _titleStyle.normal.textColor = Color.white;
+            return true;
+        }
 
-        _versionStyle = new GUIStyle(GUI.skin.label)
+        Gamepad gamepad = Gamepad.current;
+        if (gamepad != null && (gamepad.buttonSouth.wasPressedThisFrame || gamepad.startButton.wasPressedThisFrame))
         {
-            alignment = TextAnchor.LowerRight,
-            fontSize = VersionFontSize
-        };
-        _versionStyle.normal.textColor = new Color(1f, 1f, 1f, 0.6f);
+            return true;
+        }
+
+        Touchscreen touchscreen = Touchscreen.current;
+        return touchscreen != null && touchscreen.primaryTouch.press.wasPressedThisFrame;
     }
 }

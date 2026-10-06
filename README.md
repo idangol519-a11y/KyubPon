@@ -7,8 +7,8 @@ places its own. Blocks act through their stats and abilities, and abilities can
 trigger each other in chain reactions. Between levels you visit a shop or an
 event, and the run continues through harder and harder levels until you lose.
 
-**Status:** early development, version `0.2.1`. The project currently contains
-the Unity setup and the Home screen with a settings panel. See
+**Status:** early development, version `0.3.0`. The project currently contains
+the Unity setup, a title screen, and the Home screen with a settings panel. See
 [docs/GameState.md](docs/GameState.md) for what is built and what is in progress.
 
 ## Requirements
@@ -27,14 +27,14 @@ the Unity setup and the Home screen with a settings panel. See
 2. In Unity Hub, choose **Add > Add project from disk** and pick the `KyubPon` folder.
 3. Open the project. The first open takes a few minutes while Unity builds its
    `Library` folder.
-4. Open `Assets/Game/Scenes/HomeScreen.unity` and press **Play**.
+4. Open `Assets/Game/Scenes/DropScreen.unity` (the title screen) and press **Play**.
 
 ## Project structure
 
 ```
 Assets/Game/
   Fonts/       Fonts, each with its license file
-  Scenes/      Unity scenes (HomeScreen)
+  Scenes/      Unity scenes (DropScreen title screen, HomeScreen)
   Scripts/
     Core/      Settings and other shared game code
     Editor/    Editor-only tools (scene builders)
@@ -49,10 +49,9 @@ CLAUDE.md      Project guidelines and coding conventions
 
 ## Branches and versions
 
-- `main` holds stable, released versions only.
-- `develop` is the integration branch for ongoing work.
-- `feature/<short-name>`, `release/<version>` and `hotfix/<short-name>` branch
-  off as needed.
+- `main` is the only long-lived branch. It always holds the latest released version.
+- Work happens on a short-lived `feature/<short-name>` branch, which is merged
+  into `main` and then deleted.
 
 The project uses [Semantic Versioning](https://semver.org/). Every release is
 tagged (for example `v0.3.0`) and recorded in [CHANGELOG.md](CHANGELOG.md).
