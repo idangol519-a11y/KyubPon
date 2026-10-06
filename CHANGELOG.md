@@ -6,6 +6,15 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-06
+
+### Added
+- `tools/Set-GameVersion.ps1`: sets the version in Player Settings, README, GameState, and CHANGELOG together, and checks that they agree.
+- `docs/Releasing.md`: how version numbers, branches, and tags are named, and the release steps.
+
+### Fixed
+- README still said version 0.1.0 and pointed to the old DropScreen scene.
+
 ## [0.2.0] - 2026-10-06
 
 ### Added
