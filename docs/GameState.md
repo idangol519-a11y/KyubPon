@@ -1,6 +1,6 @@
 # Game State
 
-Current version: **0.2.0**
+Current version: **0.2.1**
 
 ## Built
 - Unity 2D project setup (Force Text serialization, Visible Meta Files, 2D editor mode).
@@ -11,6 +11,8 @@ Current version: **0.2.0**
 - Input goes through Unity's Input System package (`com.unity.inputsystem`). Menus work with mouse, keyboard (arrows + Enter), and controller using Unity's default UI actions.
 - Press Start 2P pixel font in `Assets/Game/Fonts/PressStart2P/` (see `docs/Credits.md`).
 - `DropScreen` scene and script from 0.1.0. No longer in the build; kept until the opening animation replaces it.
+
+- Version tooling: `tools/Set-GameVersion.ps1` keeps the version identical in every file (see `docs/Releasing.md`).
 
 ## In progress
 - Nothing yet.

@@ -7,8 +7,8 @@ places its own. Blocks act through their stats and abilities, and abilities can
 trigger each other in chain reactions. Between levels you visit a shop or an
 event, and the run continues through harder and harder levels until you lose.
 
-**Status:** early development, version `0.1.0`. The project currently contains
-the Unity setup and a placeholder drop screen. See
+**Status:** early development, version `0.2.1`. The project currently contains
+the Unity setup and the Home screen with a settings panel. See
 [docs/GameState.md](docs/GameState.md) for what is built and what is in progress.
 
 ## Requirements
@@ -27,19 +27,22 @@ the Unity setup and a placeholder drop screen. See
 2. In Unity Hub, choose **Add > Add project from disk** and pick the `KyubPon` folder.
 3. Open the project. The first open takes a few minutes while Unity builds its
    `Library` folder.
-4. Open `Assets/Game/Scenes/DropScreen.unity` and press **Play**.
+4. Open `Assets/Game/Scenes/HomeScreen.unity` and press **Play**.
 
 ## Project structure
 
 ```
 Assets/Game/
-  Scenes/      Unity scenes (DropScreen)
+  Fonts/       Fonts, each with its license file
+  Scenes/      Unity scenes (HomeScreen)
   Scripts/
-    Editor/    Editor-only tools (scene builder)
+    Core/      Settings and other shared game code
+    Editor/    Editor-only tools (scene builders)
     UI/        Screens and UI components
 Packages/      Unity package manifest
 ProjectSettings/
-docs/          Design and project state documents
+docs/          Design, project state, credits, and release steps
+tools/         Helper scripts (Set-GameVersion.ps1)
 CHANGELOG.md   Release history
 CLAUDE.md      Project guidelines and coding conventions
 ```
@@ -52,8 +55,17 @@ CLAUDE.md      Project guidelines and coding conventions
   off as needed.
 
 The project uses [Semantic Versioning](https://semver.org/). Every release is
-tagged (for example `v0.1.0`) and recorded in [CHANGELOG.md](CHANGELOG.md).
-The version number is set in **Edit > Project Settings > Player > Version**.
+tagged (for example `v0.3.0`) and recorded in [CHANGELOG.md](CHANGELOG.md).
+
+The version number is written in four files that must always agree. Do not edit
+them by hand; use the script, which changes all of them together:
+
+```powershell
+.\tools\Set-GameVersion.ps1 -Check            # show the version in every place
+.\tools\Set-GameVersion.ps1 -Version 0.3.0    # set a new version everywhere
+```
+
+The full release steps are in [docs/Releasing.md](docs/Releasing.md).
 
 ## License
 
