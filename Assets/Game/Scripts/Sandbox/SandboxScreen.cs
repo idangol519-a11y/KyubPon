@@ -1,7 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Text;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
 /// <summary>
@@ -9,13 +9,14 @@ using UnityEngine.SceneManagement;
 /// A small battle test. Each turn the player drags one block onto the grid,
 /// the enemy places one of its own (marked with an X), and then every square
 /// is activated in order, starting from a random block.
+/// Holding the mouse over a block for a moment shows a tooltip with its rules.
 /// This script only runs the turn and draws the board; the fighting rules are
 /// in SandboxCombat. See docs/GameState.md for how to remove the sandbox.
 /// </summary>
 public class SandboxScreen : MonoBehaviour
 {
     private const string HomeScreenSceneName = "HomeScreen";
-    private const string YourTurnText = "YOUR TURN: DRAG A BLOCK ONTO THE GRID";
+    private const string YourTurnText = "YOUR TURN: DRAG A BLOCK ONTO THE GRID. HOVER A BLOCK FOR ITS RULES";
     private const string BoardFullText = "GRID IS FULL: PRESS PASS OR RESET";
     private const int StartColumns = SandboxGridSize.MinimumColumns;
     private const int StartRows = SandboxGridSize.MinimumRows;
@@ -27,6 +28,11 @@ public class SandboxScreen : MonoBehaviour
     private const float EmptySquareSeconds = 0.04f;
     private const float BlockSquareSeconds = 0.55f;
 
+    // How long the mouse must rest on a block before its rules appear,
+    // and how far from the mouse the tooltip is drawn (in screen pixels).
+    private const float HoverSecondsBeforeTooltip = 1f;
+    private const float TooltipDistanceFromPointer = 20f;
+
     private static readonly Color CellColor = new Color(0.17f, 0.17f, 0.24f);
     private static readonly Color HighlightColor = new Color(0.55f, 0.55f, 0.70f);
 
@@ -34,10 +40,11 @@ public class SandboxScreen : MonoBehaviour
     [SerializeField] private RectTransform _dragLayer;
     [SerializeField] private Transform _palette;
     [SerializeField] private Font _font;
+    [SerializeField] private RectTransform _tooltip;
+    [SerializeField] private UnityEngine.UI.Text _tooltipText;
     [SerializeField] private UnityEngine.UI.Text _columnsLabel;
     [SerializeField] private UnityEngine.UI.Text _rowsLabel;
     [SerializeField] private UnityEngine.UI.Text _statusLabel;
-    [SerializeField] private UnityEngine.UI.Text _rulesLabel;
     [SerializeField] private UnityEngine.UI.Text _statsLabel;
     [SerializeField] private UnityEngine.UI.Button _fewerColumnsButton;
     [SerializeField] private UnityEngine.UI.Button _moreColumnsButton;
@@ -67,6 +74,13 @@ public class SandboxScreen : MonoBehaviour
     // The player cannot place, pass, reset, or resize until it is over.
     private bool _isTurnRunning;
 
+    // What the mouse is resting on. A palette block sets the kind; a grid square sets the cell.
+    private bool _isHovering;
+    private bool _isDraggingBlock;
+    private float _hoverStartTime;
+    private SandboxCubeKind _hoveredPaletteKind;
+    private SandboxCell _hoveredCell;
+
     private void Awake()
     {
         _gridSize = new SandboxGridSize(StartColumns, StartRows);
@@ -84,11 +98,70 @@ public class SandboxScreen : MonoBehaviour
 
     private void Start()
     {
+        HideTooltip();
         BuildPalette();
         RebuildCells();
-        ShowRules();
         ShowStats();
         ShowWhoseTurn();
+    }
+
+    private void Update()
+    {
+        bool hasWaitedLongEnough = Time.unscaledTime - _hoverStartTime >= HoverSecondsBeforeTooltip;
+        if (_isHovering && hasWaitedLongEnough && !_tooltip.gameObject.activeSelf)
+        {
+            ShowTooltip();
+        }
+    }
+
+    /// <summary>
+    /// Called when the mouse moves onto a palette block (pass its kind) or a
+    /// grid square (pass the cell). The tooltip appears if the mouse stays there.
+    /// </summary>
+    public void StartHover(SandboxCubeKind paletteKind, SandboxCell cell)
+    {
+        // No tooltip while a block is being dragged across the grid.
+        if (_isDraggingBlock)
+        {
+            return;
+        }
+
+        HideTooltip();
+        _hoveredPaletteKind = paletteKind;
+        _hoveredCell = cell;
+        _hoverStartTime = Time.unscaledTime;
+        _isHovering = true;
+    }
+
+    /// <summary>
+    /// Called when the mouse leaves a palette block or a grid square. Hides the tooltip,
+    /// but only if that is still the thing being hovered. Unity can report "left the
+    /// old one" after "entered the new one", and that late report must not cancel the new hover.
+    /// </summary>
+    public void EndHover(SandboxCubeKind paletteKind, SandboxCell cell)
+    {
+        if (_hoveredPaletteKind == paletteKind && _hoveredCell == cell)
+        {
+            StopHover();
+        }
+    }
+
+    /// <summary>Called when the player starts or stops dragging a palette block.</summary>
+    public void SetDraggingBlock(bool isDragging)
+    {
+        _isDraggingBlock = isDragging;
+        if (isDragging)
+        {
+            StopHover();
+        }
+    }
+
+    private void StopHover()
+    {
+        _isHovering = false;
+        _hoveredPaletteKind = null;
+        _hoveredCell = null;
+        HideTooltip();
     }
 
     /// <summary>
@@ -166,7 +239,6 @@ public class SandboxScreen : MonoBehaviour
         SandboxBlock enemyBlock = _enemy.PlaceBlock(_board);
         _statusLabel.text = enemyBlock != null ? $"ENEMY PLACES {enemyBlock.Kind.Name}" : "ENEMY HAS NO ROOM";
         DrawBoard();
-        ShowStats();
         yield return _enemyThinkWait;
 
         yield return ActivateEverySquare();
@@ -270,6 +342,8 @@ public class SandboxScreen : MonoBehaviour
     /// <summary>Throws the old squares away and creates new ones at the board's current size.</summary>
     private void RebuildCells()
     {
+        // The square under the mouse is about to be destroyed.
+        StopHover();
         foreach (SandboxCell cell in _cells)
         {
             Destroy(cell.gameObject);
@@ -299,7 +373,7 @@ public class SandboxScreen : MonoBehaviour
 
     private void CreateCell(Vector2Int gridPosition, float cellSize)
     {
-        SandboxCell cell = SandboxCell.Create(_gridArea, gridPosition, CellColor, _font);
+        SandboxCell cell = SandboxCell.Create(_gridArea, gridPosition, CellColor, _font, this);
         _cells.Add(cell);
 
         // Positions are measured from the middle of the grid area, so the grid is centered.
@@ -318,6 +392,12 @@ public class SandboxScreen : MonoBehaviour
         {
             cell.Show(_board.GetBlock(cell.GridPosition));
         }
+
+        // The block under the mouse may have lost HP, moved, or been destroyed.
+        if (_tooltip.gameObject.activeSelf)
+        {
+            ShowTooltip();
+        }
     }
 
     private void ShowWhoseTurn()
@@ -328,30 +408,66 @@ public class SandboxScreen : MonoBehaviour
 
     private void ShowStats()
     {
-        _statsLabel.text =
-            "BATTLE\n\n" +
-            $"TURN: {_turnNumber}\n\n" +
-            $"ENEMY BLOCKS DESTROYED: {_enemyBlocksDestroyed}\n\n" +
-            $"YOUR BLOCKS DESTROYED: {_playerBlocksDestroyed}\n\n" +
-            $"YOUR BLOCKS ON GRID: {_board.CountBlocks(SandboxSide.Player)}\n\n" +
-            $"ENEMY BLOCKS ON GRID: {_board.CountBlocks(SandboxSide.Enemy)}";
+        _statsLabel.text = $"TURN {_turnNumber}     ENEMY BLOCKS DESTROYED: {_enemyBlocksDestroyed}     " +
+            $"YOUR BLOCKS DESTROYED: {_playerBlocksDestroyed}";
     }
 
     /// <summary>
-    /// Writes the rules note from the block list itself, so the note can never
-    /// disagree with what the blocks really do.
+    /// Shows the rules of whatever block the mouse is resting on, next to the mouse.
+    /// The text is built from the block list itself, so it can never disagree
+    /// with what the blocks really do. An empty square shows nothing.
     /// </summary>
-    private void ShowRules()
+    private void ShowTooltip()
     {
-        StringBuilder rules = new StringBuilder("BLOCKS\n\n");
-        foreach (SandboxCubeKind kind in SandboxCubeKind.All)
+        SandboxBlock block = _hoveredCell != null ? _board.GetBlock(_hoveredCell.GridPosition) : null;
+        SandboxCubeKind kind = block != null ? block.Kind : _hoveredPaletteKind;
+        if (kind == null)
         {
-            string colorCode = ColorUtility.ToHtmlStringRGB(kind.Color);
-            rules.Append($"<color=#{colorCode}>{kind.Name}</color>  {kind.MaxHp} HP\n{kind.RuleText}\n\n");
+            HideTooltip();
+            return;
         }
 
-        rules.Append("X = ENEMY BLOCK. THE NUMBER IS ITS HP.\n\n");
-        rules.Append("EACH TURN: YOU PLACE, THE ENEMY PLACES, THEN EVERY SQUARE ACTIVATES, STARTING FROM A RANDOM BLOCK.");
-        _rulesLabel.text = rules.ToString();
+        string owner = block == null ? string.Empty : block.Side == SandboxSide.Enemy ? "ENEMY " : "YOUR ";
+        string hp = block == null ? $"HP {kind.MaxHp}" : $"HP {block.Hp} / {kind.MaxHp}";
+        string colorCode = ColorUtility.ToHtmlStringRGB(kind.Color);
+        _tooltipText.text = $"{owner}<color=#{colorCode}>{kind.Name}</color>\n{hp}\n\n{kind.RuleText}";
+
+        bool wasHidden = !_tooltip.gameObject.activeSelf;
+        _tooltip.gameObject.SetActive(true);
+        if (wasHidden)
+        {
+            PlaceTooltipNextToPointer();
+        }
+    }
+
+    private void HideTooltip()
+    {
+        _tooltip.gameObject.SetActive(false);
+    }
+
+    /// <summary>
+    /// Puts the tooltip below and to the right of the mouse. If it would run off
+    /// the screen there, it flips to the other side so it is always fully visible.
+    /// </summary>
+    private void PlaceTooltipNextToPointer()
+    {
+        if (Pointer.current == null)
+        {
+            return;
+        }
+
+        // The tooltip's height depends on its text, so its layout must be worked out before measuring it.
+        UnityEngine.UI.LayoutRebuilder.ForceRebuildLayoutImmediate(_tooltip);
+        Vector2 pointer = Pointer.current.position.ReadValue();
+        Vector2 sizeOnScreen = _tooltip.rect.size * _tooltip.lossyScale.x;
+
+        bool fitsOnRight = pointer.x + TooltipDistanceFromPointer + sizeOnScreen.x <= Screen.width;
+        bool fitsBelow = pointer.y - TooltipDistanceFromPointer - sizeOnScreen.y >= 0f;
+
+        // The pivot is the corner of the tooltip that sits next to the mouse.
+        _tooltip.pivot = new Vector2(fitsOnRight ? 0f : 1f, fitsBelow ? 1f : 0f);
+        _tooltip.position = pointer + new Vector2(
+            fitsOnRight ? TooltipDistanceFromPointer : -TooltipDistanceFromPointer,
+            fitsBelow ? -TooltipDistanceFromPointer : TooltipDistanceFromPointer);
     }
 }

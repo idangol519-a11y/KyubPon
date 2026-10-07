@@ -7,7 +7,8 @@ using UnityEngine.EventSystems;
 /// A block in the palette under the grid. Dragging it carries a copy with the
 /// mouse; dropping the copy on an empty square places a player block there.
 /// </summary>
-public class SandboxPaletteCube : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler
+public class SandboxPaletteCube : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler,
+    IPointerEnterHandler, IPointerExitHandler
 {
     // Reused for every drop so no new list is created each time.
     private static readonly List<RaycastResult> RaycastResults = new List<RaycastResult>();
@@ -34,9 +35,23 @@ public class SandboxPaletteCube : MonoBehaviour, IBeginDragHandler, IDragHandler
         return cube;
     }
 
+    /// <summary>Called by Unity when the mouse moves onto this block. Starts the wait for the rules tooltip.</summary>
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        _screen.StartHover(_kind, null);
+    }
+
+    /// <summary>Called by Unity when the mouse leaves this block.</summary>
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        _screen.EndHover(_kind, null);
+    }
+
     /// <summary>Called by Unity when the player starts dragging this block.</summary>
     public void OnBeginDrag(PointerEventData eventData)
     {
+        _screen.SetDraggingBlock(true);
+
         GameObject copy = new GameObject("Dragged Block", typeof(RectTransform));
         _draggedCopy = (RectTransform)copy.transform;
         _draggedCopy.SetParent(_dragLayer, false);
@@ -69,11 +84,16 @@ public class SandboxPaletteCube : MonoBehaviour, IBeginDragHandler, IDragHandler
 
         Destroy(_draggedCopy.gameObject);
         _draggedCopy = null;
+        _screen.SetDraggingBlock(false);
 
         SandboxCell cell = FindCellUnderPointer(eventData);
         if (cell != null)
         {
             _screen.TryPlacePlayerBlock(_kind, cell.GridPosition);
+
+            // The mouse is already on this square, so Unity will not report "entering" it.
+            // Start the hover by hand so the tooltip still appears if the mouse stays put.
+            _screen.StartHover(null, cell);
         }
     }
 

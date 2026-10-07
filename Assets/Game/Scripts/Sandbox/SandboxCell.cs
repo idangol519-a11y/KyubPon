@@ -1,11 +1,12 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 /// <summary>
 /// TEMPORARY (sandbox test page, to be removed).
 /// One square of the sandbox grid on screen. It draws whatever block the board
 /// says is on it: the block's color, its HP, and an X if it is an enemy block.
 /// </summary>
-public class SandboxCell : MonoBehaviour
+public class SandboxCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
     // How far the block picture stays from the edges of the square.
     private const float BlockInset = 8f;
@@ -26,12 +27,13 @@ public class SandboxCell : MonoBehaviour
     private UnityEngine.UI.Text _enemyMark;
     private UnityEngine.UI.Text _hpText;
     private Color _normalColor;
+    private SandboxScreen _screen;
 
     /// <summary>Where this square is in the grid: x is the column, y is the row.</summary>
     public Vector2Int GridPosition { get; private set; }
 
     /// <summary>Creates an empty square at the given grid position.</summary>
-    public static SandboxCell Create(Transform parent, Vector2Int gridPosition, Color color, Font font)
+    public static SandboxCell Create(Transform parent, Vector2Int gridPosition, Color color, Font font, SandboxScreen screen)
     {
         GameObject cellObject = new GameObject($"Cell {gridPosition.x},{gridPosition.y}", typeof(RectTransform));
         cellObject.transform.SetParent(parent, false);
@@ -39,6 +41,7 @@ public class SandboxCell : MonoBehaviour
         SandboxCell cell = cellObject.AddComponent<SandboxCell>();
         cell.GridPosition = gridPosition;
         cell._normalColor = color;
+        cell._screen = screen;
 
         // The square's image is also what the mouse "hits" when a block is dropped here.
         cell._squareImage = cellObject.AddComponent<UnityEngine.UI.Image>();
@@ -46,6 +49,18 @@ public class SandboxCell : MonoBehaviour
         cell.CreateBlockPicture(font);
         cell.Show(null);
         return cell;
+    }
+
+    /// <summary>Called by Unity when the mouse moves onto this square. Starts the wait for the rules tooltip.</summary>
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        _screen.StartHover(null, this);
+    }
+
+    /// <summary>Called by Unity when the mouse leaves this square.</summary>
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        _screen.EndHover(null, this);
     }
 
     /// <summary>Lights the square up while it is being activated, or returns it to normal.</summary>

@@ -6,6 +6,15 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-07
+
+### Added
+- Sandbox: a rules tooltip. Hold the mouse on a block for one second, in the palette or on the grid, to see its name, HP, and what it does. For blocks on the grid it also says whose block it is and shows current HP out of starting HP.
+
+### Changed
+- Sandbox: the grid is about 30% larger. The rules panel on the left and the battle panel on the right are gone, the title and battle numbers are single lines at the top, and the palette shares the bottom row with the Back, Pass, and Reset buttons.
+- Sandbox: the battle line now shows the turn number and the blocks destroyed on each side. The "blocks on grid" counts were dropped since they can be seen on the board.
+
 ## [0.7.0] - 2026-10-07
 
 ### Added
