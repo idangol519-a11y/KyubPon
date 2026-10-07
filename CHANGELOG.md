@@ -6,6 +6,16 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-07
+
+### Added
+- Block skins drawn by Idan for the four blocks (red, blue, green, yellow), 64 by 64 pixel PNGs in `Assets/StreamingAssets/Content/Blocks/<Name>/<Name>.png`.
+- `BlockSkinLoader`: loads block skins from those PNG files while the game runs, so a skin can be changed by replacing its file. A missing file falls back to a plain colored square and logs a warning.
+
+### Changed
+- Sandbox blocks, the palette, and the dragged block now show the skins instead of plain colored squares.
+- Enemy blocks show the same skin darkened, with the X drawn across the whole block. HP numbers have a dark outline so they stay readable on the skins.
+
 ## [0.6.0] - 2026-10-06
 
 ### Added

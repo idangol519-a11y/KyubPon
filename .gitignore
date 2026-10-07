@@ -34,3 +34,7 @@ Thumbs.db
 *.aab
 *.unitypackage
 crashlytics-build.properties
+
+# Scene backups Unity keeps after the Editor closes unexpectedly
+/Assets/_Recovery/
+/Assets/_Recovery.meta

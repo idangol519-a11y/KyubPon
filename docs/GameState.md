@@ -1,6 +1,6 @@
 # Game State
 
-Current version: **0.6.0**
+Current version: **0.7.0**
 
 ## Built
 - Unity 2D project setup (Force Text serialization, Visible Meta Files, 2D editor mode).
@@ -15,6 +15,11 @@ Current version: **0.6.0**
 - Version tooling: `tools/Set-GameVersion.ps1` keeps the version identical in every file (see `docs/Releasing.md`).
 
 - Git: one long-lived branch, `main`. Feature branches are merged into it and deleted.
+
+## Block skins
+- The four block skins live in `Assets/StreamingAssets/Content/Blocks/<Name>/<Name>.png` (RedBlock, BlueBlock, GreenBlock, YellowBlock). Size: 64 by 64 pixels, PNG, transparency allowed. Replace a file to change a skin.
+- `BlockSkinLoader` (in `Scripts/Core/`) reads them at run time with sharp pixel scaling. This is permanent code, not part of the temporary sandbox.
+- The block folders hold only the PNG so far. The JSON data file described in CLAUDE.md is not there yet, because block data is still written in the sandbox code.
 
 ## Temporary: Sandbox test page (to be removed)
 A test page for trying out a grid and drag-and-drop. It is not part of the game design.
