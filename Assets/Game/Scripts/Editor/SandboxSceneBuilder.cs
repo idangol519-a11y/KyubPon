@@ -15,41 +15,46 @@ public static class SandboxSceneBuilder
     private const string ScenePath = SceneBuilderTools.SandboxScenePath;
 
     // Press Start 2P is drawn on an 8-pixel grid, so sizes that are multiples of 8 stay sharp.
-    private const int HeadingFontSize = 64;
-    private const int ButtonFontSize = 48;
+    private const int HeadingFontSize = 48;
     private const int ControlFontSize = 32;
     private const int NoteFontSize = 24;
-    private const int PanelFontSize = 16;
+    private const int TooltipFontSize = 16;
 
-    private const float HeadingOffsetFromTop = 50f;
-    private const float NoteOffsetFromTop = 140f;
-    private const float ControlsOffsetFromTop = 190f;
-    private const float StatusOffsetFromTop = 258f;
-    private const float GridOffsetFromCenter = -30f;
-    private const float PanelMarginFromSide = 40f;
-    private const float PaletteOffsetFromBottom = 130f;
-    private const float ButtonsOffsetFromBottom = 36f;
-    private const float SpaceBetweenBottomButtons = 400f;
+    // The top of the page is kept thin so the grid gets as much height as possible.
+    private const float HeadingOffsetFromTop = 24f;
+    private const float ControlsOffsetFromTop = 88f;
+    private const float StatsOffsetFromTop = 158f;
+    private const float StatusOffsetFromTop = 202f;
+    private const float GridOffsetFromCenter = -50f;
+    private const float BottomRowOffsetFromBottom = 30f;
+    private const float PaletteOffsetFromCenter = -420f;
     private const float RowSpacing = 32f;
     private const float SizeValueWidth = 96f;
     private const float GapBetweenControlGroups = 96f;
 
+    private const float TooltipWidth = 460f;
+    private const int TooltipPadding = 20;
+    private const float TooltipBorderWidth = 3f;
+
     // The pixel font's lines sit very close together, so wrapped text needs extra room.
-    private const float PanelLineSpacing = 1.6f;
+    private const float TooltipLineSpacing = 1.6f;
 
     private static readonly Vector2 TopCenter = new Vector2(0.5f, 1f);
     private static readonly Vector2 ScreenCenter = new Vector2(0.5f, 0.5f);
     private static readonly Vector2 BottomCenter = new Vector2(0.5f, 0f);
-    private static readonly Vector2 LeftCenter = new Vector2(0f, 0.5f);
-    private static readonly Vector2 RightCenter = new Vector2(1f, 0.5f);
-    private static readonly Vector2 HeadingSize = new Vector2(1600f, 72f);
-    private static readonly Vector2 NoteSize = new Vector2(1800f, 32f);
+    private static readonly Vector2 HeadingSize = new Vector2(1800f, 56f);
     private static readonly Vector2 ControlsSize = new Vector2(1800f, 56f);
-    private static readonly Vector2 StatusSize = new Vector2(1000f, 32f);
-    private static readonly Vector2 GridAreaSize = new Vector2(900f, 520f);
-    private static readonly Vector2 PanelSize = new Vector2(440f, 620f);
-    private static readonly Vector2 PaletteSize = new Vector2(1600f, 100f);
-    private static readonly Vector2 BottomButtonSize = new Vector2(360f, 56f);
+    private static readonly Vector2 LineSize = new Vector2(1800f, 32f);
+    private static readonly Vector2 GridAreaSize = new Vector2(1800f, 680f);
+    private static readonly Vector2 PaletteSize = new Vector2(960f, 100f);
+    private static readonly Vector2 BottomButtonSize = new Vector2(200f, 100f);
+    private static readonly Color TooltipBackgroundColor = new Color(0.04f, 0.04f, 0.07f, 0.96f);
+    private static readonly Color TooltipBorderColor = new Color(0.92f, 0.92f, 0.92f);
+
+    // Where the three bottom buttons sit, measured sideways from the middle of the screen.
+    private const float BackButtonOffset = 300f;
+    private const float PassButtonOffset = 520f;
+    private const float ResetButtonOffset = 760f;
 
     static SandboxSceneBuilder()
     {
@@ -68,8 +73,8 @@ public static class SandboxSceneBuilder
     }
 
     /// <summary>
-    /// Creates the scene with the size controls, the grid area, the side notes,
-    /// the block palette, and the buttons, saves it, opens it, and updates the
+    /// Creates the scene with the size controls, the grid area, the block palette,
+    /// the buttons, and the rules tooltip, saves it, opens it, and updates the
     /// build scene list.
     /// </summary>
     [MenuItem("KyubPon/Rebuild Sandbox Scene")]
@@ -86,17 +91,19 @@ public static class SandboxSceneBuilder
         SandboxScreen sandboxScreen = canvas.gameObject.AddComponent<SandboxScreen>();
         SerializedObject data = new SerializedObject(sandboxScreen);
 
-        BuildHeading(ui, canvas, data);
+        BuildTopLines(ui, canvas, data);
         BuildSizeControls(ui, canvas, data);
-        BuildSidePanels(ui, canvas, data);
         BuildGridArea(canvas, data);
         BuildPalette(ui, canvas, data);
         BuildBottomButtons(ui, canvas, data);
 
+        // The tooltip is created last so it is drawn on top of everything else.
+        BuildTooltip(ui, canvas, data);
+
         // The HP numbers and X marks are created while the game runs, so the screen needs the font.
         SceneBuilderTools.SetReference(data, "_font", font);
 
-        // Dragged blocks are moved under the canvas itself so they draw on top of everything.
+        // Dragged blocks are moved under the canvas itself so they draw on top of the grid.
         SceneBuilderTools.SetReference(data, "_dragLayer", canvas);
         data.ApplyModifiedPropertiesWithoutUndo();
 
@@ -106,17 +113,18 @@ public static class SandboxSceneBuilder
         Debug.Log($"[Info] Created {ScenePath} and updated the build scene list.");
     }
 
-    /// <summary>The title, the "temporary" note, and the status line that says what is happening.</summary>
-    private static void BuildHeading(MenuUiBuilder ui, Transform canvas, SerializedObject data)
+    /// <summary>The title, the battle numbers, and the status line that says what is happening.</summary>
+    private static void BuildTopLines(MenuUiBuilder ui, Transform canvas, SerializedObject data)
     {
-        UnityEngine.UI.Text heading = ui.CreateLabel(canvas, "Heading", "SANDBOX", HeadingFontSize);
+        UnityEngine.UI.Text heading = ui.CreateLabel(canvas, "Heading", "SANDBOX - TEMPORARY TEST", HeadingFontSize);
         SceneBuilderTools.PlaceAtEdge(heading.rectTransform, TopCenter, new Vector2(0f, -HeadingOffsetFromTop), HeadingSize);
 
-        UnityEngine.UI.Text note = ui.CreateLabel(canvas, "Note", "TEMPORARY TEST PAGE", NoteFontSize);
-        SceneBuilderTools.PlaceAtEdge(note.rectTransform, TopCenter, new Vector2(0f, -NoteOffsetFromTop), NoteSize);
+        UnityEngine.UI.Text stats = ui.CreateLabel(canvas, "StatsLabel", "TURN 1", NoteFontSize);
+        SceneBuilderTools.PlaceAtEdge(stats.rectTransform, TopCenter, new Vector2(0f, -StatsOffsetFromTop), LineSize);
+        SceneBuilderTools.SetReference(data, "_statsLabel", stats);
 
         UnityEngine.UI.Text status = ui.CreateLabel(canvas, "StatusLabel", "YOUR TURN", NoteFontSize);
-        SceneBuilderTools.PlaceAtEdge(status.rectTransform, TopCenter, new Vector2(0f, -StatusOffsetFromTop), StatusSize);
+        SceneBuilderTools.PlaceAtEdge(status.rectTransform, TopCenter, new Vector2(0f, -StatusOffsetFromTop), LineSize);
         SceneBuilderTools.SetReference(data, "_statusLabel", status);
     }
 
@@ -150,31 +158,9 @@ public static class SandboxSceneBuilder
     }
 
     /// <summary>
-    /// The rules note on the left and the battle numbers on the right.
-    /// Their text is filled in by SandboxScreen when the game runs.
+    /// An empty box that fills the middle of the screen from side to side.
+    /// The grid squares are created inside it when the game runs.
     /// </summary>
-    private static void BuildSidePanels(MenuUiBuilder ui, Transform canvas, SerializedObject data)
-    {
-        UnityEngine.UI.Text rules = CreatePanelText(ui, canvas, "RulesLabel");
-        SceneBuilderTools.PlaceAtEdge(rules.rectTransform, LeftCenter, new Vector2(PanelMarginFromSide, GridOffsetFromCenter), PanelSize);
-        SceneBuilderTools.SetReference(data, "_rulesLabel", rules);
-
-        UnityEngine.UI.Text stats = CreatePanelText(ui, canvas, "StatsLabel");
-        SceneBuilderTools.PlaceAtEdge(stats.rectTransform, RightCenter, new Vector2(-PanelMarginFromSide, GridOffsetFromCenter), PanelSize);
-        SceneBuilderTools.SetReference(data, "_statsLabel", stats);
-    }
-
-    /// <summary>Side panels hold several lines, so their text wraps and starts at the top-left.</summary>
-    private static UnityEngine.UI.Text CreatePanelText(MenuUiBuilder ui, Transform canvas, string name)
-    {
-        UnityEngine.UI.Text text = ui.CreateLabel(canvas, name, string.Empty, PanelFontSize);
-        text.alignment = TextAnchor.UpperLeft;
-        text.horizontalOverflow = HorizontalWrapMode.Wrap;
-        text.lineSpacing = PanelLineSpacing;
-        return text;
-    }
-
-    /// <summary>An empty box in the middle of the screen. The grid squares are created inside it when the game runs.</summary>
     private static void BuildGridArea(Transform canvas, SerializedObject data)
     {
         GameObject gridArea = new GameObject("GridArea", typeof(RectTransform));
@@ -183,27 +169,68 @@ public static class SandboxSceneBuilder
         SceneBuilderTools.SetReference(data, "_gridArea", gridArea.transform);
     }
 
-    /// <summary>A row under the grid. The blocks to drag from are added to it when the game runs.</summary>
+    /// <summary>A row at the bottom-left. The blocks to drag from are added to it when the game runs.</summary>
     private static void BuildPalette(MenuUiBuilder ui, Transform canvas, SerializedObject data)
     {
         Transform palette = ui.CreateRow(canvas, "Palette", RowSpacing);
-        SceneBuilderTools.PlaceAtEdge((RectTransform)palette, BottomCenter, new Vector2(0f, PaletteOffsetFromBottom), PaletteSize);
+        SceneBuilderTools.PlaceAtEdge((RectTransform)palette, BottomCenter, new Vector2(PaletteOffsetFromCenter, BottomRowOffsetFromBottom), PaletteSize);
         ui.CreateLabel(palette, "PaletteLabel", "DRAG A BLOCK:", ControlFontSize);
         SceneBuilderTools.SetReference(data, "_palette", palette);
     }
 
+    /// <summary>The buttons share the bottom row with the palette, so the grid can be taller.</summary>
     private static void BuildBottomButtons(MenuUiBuilder ui, Transform canvas, SerializedObject data)
     {
-        BuildBottomButton(ui, canvas, data, "BackButton", "BACK", "_backButton", -SpaceBetweenBottomButtons);
-        BuildBottomButton(ui, canvas, data, "PassButton", "PASS", "_passButton", 0f);
-        BuildBottomButton(ui, canvas, data, "ResetButton", "RESET", "_resetButton", SpaceBetweenBottomButtons);
+        BuildBottomButton(ui, canvas, data, "BackButton", "BACK", "_backButton", BackButtonOffset);
+        BuildBottomButton(ui, canvas, data, "PassButton", "PASS", "_passButton", PassButtonOffset);
+        BuildBottomButton(ui, canvas, data, "ResetButton", "RESET", "_resetButton", ResetButtonOffset);
     }
 
     private static void BuildBottomButton(MenuUiBuilder ui, Transform canvas, SerializedObject data,
         string objectName, string caption, string fieldName, float offsetFromCenter)
     {
-        UnityEngine.UI.Button button = ui.CreateTextButton(canvas, objectName, caption, ButtonFontSize);
-        SceneBuilderTools.PlaceAtEdge((RectTransform)button.transform, BottomCenter, new Vector2(offsetFromCenter, ButtonsOffsetFromBottom), BottomButtonSize);
+        UnityEngine.UI.Button button = ui.CreateTextButton(canvas, objectName, caption, ControlFontSize);
+        SceneBuilderTools.PlaceAtEdge((RectTransform)button.transform, BottomCenter, new Vector2(offsetFromCenter, BottomRowOffsetFromBottom), BottomButtonSize);
         SceneBuilderTools.SetReference(data, fieldName, button);
+    }
+
+    /// <summary>
+    /// The box that shows a block's rules when the mouse rests on it. It has a fixed
+    /// width and grows taller to fit its text. It starts hidden, and it ignores the
+    /// mouse so it can never get in the way of the block underneath it.
+    /// </summary>
+    private static void BuildTooltip(MenuUiBuilder ui, Transform canvas, SerializedObject data)
+    {
+        GameObject tooltip = new GameObject("Tooltip", typeof(RectTransform));
+        tooltip.transform.SetParent(canvas, false);
+        RectTransform rect = (RectTransform)tooltip.transform;
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.zero;
+        rect.sizeDelta = new Vector2(TooltipWidth, 0f);
+
+        UnityEngine.UI.Image background = tooltip.AddComponent<UnityEngine.UI.Image>();
+        background.color = TooltipBackgroundColor;
+        background.raycastTarget = false;
+        UnityEngine.UI.Outline border = tooltip.AddComponent<UnityEngine.UI.Outline>();
+        border.effectColor = TooltipBorderColor;
+        border.effectDistance = new Vector2(TooltipBorderWidth, -TooltipBorderWidth);
+
+        // The layout group gives the text the box's width; the fitter makes the box as tall as the text.
+        UnityEngine.UI.VerticalLayoutGroup layout = tooltip.AddComponent<UnityEngine.UI.VerticalLayoutGroup>();
+        layout.padding = new RectOffset(TooltipPadding, TooltipPadding, TooltipPadding, TooltipPadding);
+        layout.childControlWidth = true;
+        layout.childControlHeight = true;
+        layout.childForceExpandWidth = true;
+        layout.childForceExpandHeight = false;
+        tooltip.AddComponent<UnityEngine.UI.ContentSizeFitter>().verticalFit = UnityEngine.UI.ContentSizeFitter.FitMode.PreferredSize;
+
+        UnityEngine.UI.Text text = ui.CreateLabel(tooltip.transform, "TooltipText", string.Empty, TooltipFontSize);
+        text.alignment = TextAnchor.UpperLeft;
+        text.horizontalOverflow = HorizontalWrapMode.Wrap;
+        text.lineSpacing = TooltipLineSpacing;
+
+        SceneBuilderTools.SetReference(data, "_tooltip", rect);
+        SceneBuilderTools.SetReference(data, "_tooltipText", text);
+        tooltip.SetActive(false);
     }
 }
