@@ -25,7 +25,7 @@ public class SandboxPaletteCube : MonoBehaviour, IBeginDragHandler, IDragHandler
     {
         GameObject cubeObject = new GameObject(kind.Name + " Palette Block", typeof(RectTransform));
         cubeObject.transform.SetParent(parent, false);
-        cubeObject.AddComponent<UnityEngine.UI.Image>().color = kind.Color;
+        kind.ApplyLook(cubeObject.AddComponent<UnityEngine.UI.Image>(), 0f);
 
         SandboxPaletteCube cube = cubeObject.AddComponent<SandboxPaletteCube>();
         cube._kind = kind;
@@ -46,7 +46,7 @@ public class SandboxPaletteCube : MonoBehaviour, IBeginDragHandler, IDragHandler
         // The copy must not block the mouse, or the square underneath
         // could not be found when the copy is dropped.
         UnityEngine.UI.Image image = copy.AddComponent<UnityEngine.UI.Image>();
-        image.color = _kind.Color;
+        _kind.ApplyLook(image, 0f);
         image.raycastTarget = false;
     }
 

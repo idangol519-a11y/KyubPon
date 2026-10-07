@@ -15,10 +15,11 @@ public class SandboxCell : MonoBehaviour
     // How much an enemy block's color is darkened, so the two sides are easy to tell apart.
     private const float EnemyDarkening = 0.35f;
 
-    // The X takes the top part of the block and the HP number the bottom part.
-    private const float SplitHeight = 0.42f;
+    // The HP number sits in the bottom part of the block. The enemy X covers the whole block.
+    private const float HpHeight = 0.42f;
+    private const float HpOutlineWidth = 2f;
 
-    private static readonly Color EnemyMarkColor = new Color(0f, 0f, 0f, 0.75f);
+    private static readonly Color EnemyMarkColor = new Color(0f, 0f, 0f, 0.6f);
 
     private UnityEngine.UI.Image _squareImage;
     private UnityEngine.UI.Image _blockImage;
@@ -63,7 +64,7 @@ public class SandboxCell : MonoBehaviour
         }
 
         bool isEnemy = block.Side == SandboxSide.Enemy;
-        _blockImage.color = isEnemy ? Color.Lerp(block.Kind.Color, Color.black, EnemyDarkening) : block.Kind.Color;
+        block.Kind.ApplyLook(_blockImage, isEnemy ? EnemyDarkening : 0f);
         _enemyMark.enabled = isEnemy;
         _hpText.text = block.Hp.ToString();
     }
@@ -76,9 +77,14 @@ public class SandboxCell : MonoBehaviour
         _blockImage = blockRect.gameObject.AddComponent<UnityEngine.UI.Image>();
         _blockImage.raycastTarget = false;
 
-        _enemyMark = CreateText(blockRect, "EnemyMark", font, new Vector2(0f, SplitHeight), Vector2.one, EnemyMarkColor);
+        _enemyMark = CreateText(blockRect, "EnemyMark", font, Vector2.zero, Vector2.one, EnemyMarkColor);
         _enemyMark.text = "X";
-        _hpText = CreateText(blockRect, "Hp", font, Vector2.zero, new Vector2(1f, SplitHeight), Color.white);
+        _hpText = CreateText(blockRect, "Hp", font, Vector2.zero, new Vector2(1f, HpHeight), Color.white);
+
+        // A dark outline keeps the white number readable on bright skins.
+        UnityEngine.UI.Outline outline = _hpText.gameObject.AddComponent<UnityEngine.UI.Outline>();
+        outline.effectColor = Color.black;
+        outline.effectDistance = new Vector2(HpOutlineWidth, -HpOutlineWidth);
     }
 
     /// <summary>Creates text that shrinks or grows to fit, since squares change size with the grid.</summary>
