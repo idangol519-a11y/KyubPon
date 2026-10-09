@@ -28,40 +28,51 @@ public static class SandboxCombat
     };
 
     /// <summary>
-    /// Decides who won once both hands are empty: the side with more blocks still
-    /// on the board. Returns null for a draw (the same number on both sides).
+    /// Says how the battle stands. A side is out when it has no blocks on the
+    /// board and none left in its hand. One side out means the other wins;
+    /// both out at once is a draw.
     /// </summary>
-    public static SandboxSide? PickWinner(SandboxBoard board)
+    public static SandboxOutcome GetOutcome(SandboxBoard board, int playerHandCount, int enemyHandCount)
     {
-        int playerBlocks = board.CountBlocks(SandboxSide.Player);
-        int enemyBlocks = board.CountBlocks(SandboxSide.Enemy);
-        if (playerBlocks == enemyBlocks)
+        bool playerIsOut = playerHandCount == 0 && board.CountBlocks(SandboxSide.Player) == 0;
+        bool enemyIsOut = enemyHandCount == 0 && board.CountBlocks(SandboxSide.Enemy) == 0;
+
+        if (playerIsOut && enemyIsOut)
         {
-            return null;
+            return SandboxOutcome.Draw;
         }
 
-        return playerBlocks > enemyBlocks ? SandboxSide.Player : SandboxSide.Enemy;
+        if (playerIsOut)
+        {
+            return SandboxOutcome.EnemyWins;
+        }
+
+        return enemyIsOut ? SandboxOutcome.PlayerWins : SandboxOutcome.Undecided;
     }
 
     /// <summary>
     /// Makes one block use its ability. Blocks destroyed by it are taken off
     /// the board and added to the "destroyed" list so the caller can count them.
+    /// "attackedSquares" is filled with the square of every block it attacked
+    /// (where that block stood when it was hit), so the caller can animate the hits.
     /// </summary>
-    public static void Activate(SandboxBoard board, SandboxBlock block, List<SandboxBlock> destroyed)
+    public static void Activate(SandboxBoard board, SandboxBlock block, List<SandboxBlock> destroyed,
+        List<Vector2Int> attackedSquares)
     {
+        attackedSquares.Clear();
         switch (block.Kind.Ability)
         {
             case SandboxAbility.Strike:
-                StrikeNeighbours(board, block, destroyed);
+                StrikeNeighbours(board, block, destroyed, attackedSquares);
                 break;
             case SandboxAbility.Push:
-                PushNeighbours(board, block, destroyed);
+                PushNeighbours(board, block, destroyed, attackedSquares);
                 break;
             case SandboxAbility.Heal:
                 HealNeighbours(board, block);
                 break;
             case SandboxAbility.RowShot:
-                ShootRow(board, block, destroyed);
+                ShootRow(board, block, destroyed, attackedSquares);
                 break;
         }
     }
@@ -121,13 +132,15 @@ public static class SandboxCombat
         }
     }
 
-    private static void StrikeNeighbours(SandboxBoard board, SandboxBlock block, List<SandboxBlock> destroyed)
+    private static void StrikeNeighbours(SandboxBoard board, SandboxBlock block, List<SandboxBlock> destroyed,
+        List<Vector2Int> attackedSquares)
     {
         foreach (Vector2Int direction in Directions)
         {
             SandboxBlock target = board.GetBlock(block.Position + direction);
             if (IsOpponent(block, target))
             {
+                attackedSquares.Add(target.Position);
                 Damage(board, target, StrikeDamage, destroyed);
             }
         }
@@ -138,7 +151,8 @@ public static class SandboxCombat
     /// off the board the block is destroyed; if another block is in the way,
     /// the pushed block is hurt instead of moving.
     /// </summary>
-    private static void PushNeighbours(SandboxBoard board, SandboxBlock block, List<SandboxBlock> destroyed)
+    private static void PushNeighbours(SandboxBoard board, SandboxBlock block, List<SandboxBlock> destroyed,
+        List<Vector2Int> attackedSquares)
     {
         foreach (Vector2Int direction in Directions)
         {
@@ -148,6 +162,7 @@ public static class SandboxCombat
                 continue;
             }
 
+            attackedSquares.Add(target.Position);
             Vector2Int destination = target.Position + direction;
             if (!board.IsInside(destination))
             {
@@ -177,13 +192,15 @@ public static class SandboxCombat
         }
     }
 
-    private static void ShootRow(SandboxBoard board, SandboxBlock block, List<SandboxBlock> destroyed)
+    private static void ShootRow(SandboxBoard board, SandboxBlock block, List<SandboxBlock> destroyed,
+        List<Vector2Int> attackedSquares)
     {
         for (int column = 0; column < board.Columns; column++)
         {
             SandboxBlock target = board.GetBlock(new Vector2Int(column, block.Position.y));
             if (IsOpponent(block, target))
             {
+                attackedSquares.Add(target.Position);
                 Damage(board, target, RowShotDamage, destroyed);
             }
         }

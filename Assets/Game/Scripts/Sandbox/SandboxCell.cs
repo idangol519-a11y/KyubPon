@@ -47,8 +47,9 @@ public class SandboxCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         // The square's image is also what the mouse "hits" when a block is dropped here.
         cell._squareImage = cellObject.AddComponent<UnityEngine.UI.Image>();
         cell._squareImage.color = color;
-        cell.CreateBlockPicture(font);
+        // Created before the block picture, so the tint is drawn underneath the block.
         cell.CreateAreaTint();
+        cell.CreateBlockPicture(font);
         cell.Show(null);
         return cell;
     }
@@ -72,8 +73,8 @@ public class SandboxCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
     }
 
     /// <summary>
-    /// Covers the square with a see-through color, used to show a block's area of effect.
-    /// The tint is drawn over the block, so it also shows on squares that are occupied.
+    /// Colors the square, used to show a block's area of effect. The tint is drawn
+    /// under the block, so on an occupied square it shows as a colored frame around the block.
     /// </summary>
     public void ShowAreaTint(Color color)
     {
@@ -104,7 +105,7 @@ public class SandboxCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
 
     private void CreateAreaTint()
     {
-        // Created after the block picture, so it is drawn on top of it.
+
         _areaTint = CreateChild(transform, "AreaTint", Vector2.zero, Vector2.one).gameObject.AddComponent<UnityEngine.UI.Image>();
         _areaTint.raycastTarget = false;
         _areaTint.enabled = false;

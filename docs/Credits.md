@@ -15,3 +15,11 @@ Made for KyubPon by the project owner. Not third-party, no license needed.
 | Asset | Author | Files |
 |---|---|---|
 | Block skins (Red, Blue, Green, Yellow) | Idan | `Assets/StreamingAssets/Content/Blocks/` |
+
+## Not cleared for release
+
+Used for local testing only. Kept out of Git. Must be replaced or licensed before the game is shared.
+
+| Asset | Source | License | Files |
+|---|---|---|---|
+| Slash attack effect (9 frames) | GIF supplied by Idan: `demon-awakening-effect-slash-3.gif`. Original author unknown; the name suggests it comes from another game. | Not confirmed | `Assets/StreamingAssets/Content/Effects/Slash/` (on Idan's PC only) |

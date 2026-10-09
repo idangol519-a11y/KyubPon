@@ -1,6 +1,6 @@
 # Game State
 
-Current version: **0.10.0**
+Current version: **0.11.0**
 
 ## Built
 - Unity 2D project setup (Force Text serialization, Visible Meta Files, 2D editor mode).
@@ -25,7 +25,9 @@ Current version: **0.10.0**
 A test page for trying out a grid and drag-and-drop. It is not part of the game design.
 - Opened by the SANDBOX button on the Home screen. Grid size is changed with the on-screen arrows; the limits (minimum 5 by 4, maximum 12 by 8) are constants in `SandboxGridSize.cs`.
 - Battle test: each turn the player drags one block onto an empty square, the enemy places one (drawn with an X), then every square activates in reading order starting from a random block. Blocks have HP; the panel on the right counts destroyed blocks on both sides.
-- Hands and winner: each side is dealt 10 random blocks (`SandboxHand.StartingSize`). A turn uses one block from each hand. When both hands are empty the side with more blocks on the grid wins (`SandboxCombat.PickWinner`); equal numbers is a draw. RESET deals new hands.
+- Hands and winner: each side is dealt 10 random blocks (`SandboxHand.StartingSize`). A turn uses one block from each hand. Once the player's hand is empty the turns play by themselves. A side loses when it has no blocks on the grid and none in hand (`SandboxCombat.GetOutcome`). The battle is a draw if both run out together or if the board looks exactly the same 3 times. RESET deals new hands.
+- Attack animation: `SandboxSlashEffect` plays the "Slash" frames between attacker and target. The frames come from `EffectFramesLoader` (permanent code in `Scripts/Core/`).
+- **Slash frames are not in Git.** They were cut from a GIF supplied by Idan (`demon-awakening-effect-slash-3.gif`) whose source and license are not confirmed, so `Assets/StreamingAssets/Content/Effects/` is ignored by Git and exists only on Idan's PC. Without the frames the game draws a plain white streak. Replace them with art we own before any release.
 - Each block's rules appear in a tooltip after the mouse rests on it for one second (palette or grid). The tooltip text is generated from the block list.
 - Moving the mouse onto a placed block tints its area of effect: red for squares it attacks, blue for other effects (heal targets, and where a pushed block would land). The squares come from `SandboxCombat.CollectAreaOfEffect`, which must be kept in step with the ability code beside it.
 - Block rules: red -2 HP to each enemy next to it; blue pushes each enemy next to it one square (off the edge = destroyed, blocked = -1 HP); green +2 HP to each friend next to it; yellow -1 HP to every enemy in its row. The numbers are constants in `SandboxCombat.cs` and the block list is in `SandboxCubeKind.cs`; the rules note on the page is generated from them.
