@@ -27,7 +27,8 @@ public static class SandboxSceneBuilder
     private const float StatusOffsetFromTop = 202f;
     private const float GridOffsetFromCenter = -50f;
     private const float BottomRowOffsetFromBottom = 30f;
-    private const float PaletteOffsetFromCenter = -420f;
+    private const float PaletteOffsetFromCenter = -350f;
+    private const float PaletteSpacing = 12f;
     private const float RowSpacing = 32f;
     private const float SizeValueWidth = 96f;
     private const float GapBetweenControlGroups = 96f;
@@ -46,7 +47,7 @@ public static class SandboxSceneBuilder
     private static readonly Vector2 ControlsSize = new Vector2(1800f, 56f);
     private static readonly Vector2 LineSize = new Vector2(1800f, 32f);
     private static readonly Vector2 GridAreaSize = new Vector2(1800f, 680f);
-    private static readonly Vector2 PaletteSize = new Vector2(960f, 100f);
+    private static readonly Vector2 PaletteSize = new Vector2(1100f, 100f);
     private static readonly Vector2 BottomButtonSize = new Vector2(200f, 100f);
     private static readonly Color TooltipBackgroundColor = new Color(0.04f, 0.04f, 0.07f, 0.96f);
     private static readonly Color TooltipBorderColor = new Color(0.92f, 0.92f, 0.92f);
@@ -169,12 +170,12 @@ public static class SandboxSceneBuilder
         SceneBuilderTools.SetReference(data, "_gridArea", gridArea.transform);
     }
 
-    /// <summary>A row at the bottom-left. The blocks to drag from are added to it when the game runs.</summary>
+    /// <summary>A row at the bottom-left. The blocks of the player's hand are added to it when the game runs.</summary>
     private static void BuildPalette(MenuUiBuilder ui, Transform canvas, SerializedObject data)
     {
-        Transform palette = ui.CreateRow(canvas, "Palette", RowSpacing);
+        Transform palette = ui.CreateRow(canvas, "Palette", PaletteSpacing);
         SceneBuilderTools.PlaceAtEdge((RectTransform)palette, BottomCenter, new Vector2(PaletteOffsetFromCenter, BottomRowOffsetFromBottom), PaletteSize);
-        ui.CreateLabel(palette, "PaletteLabel", "DRAG A BLOCK:", ControlFontSize);
+        ui.CreateLabel(palette, "PaletteLabel", "YOUR BLOCKS:", NoteFontSize);
         SceneBuilderTools.SetReference(data, "_palette", palette);
     }
 

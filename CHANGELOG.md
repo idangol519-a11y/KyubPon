@@ -6,6 +6,17 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-10-09
+
+### Added
+- Sandbox: hands. Each side starts a battle with 10 random blocks. Your hand is shown under the grid, and a block leaves it when you place it. The enemy places from its own hand.
+- Sandbox: a winner. When both hands are empty, the side with more blocks left on the grid wins; the same number is a draw. The result is shown above the grid.
+- Sandbox: the battle line shows how many blocks each side still has in hand.
+
+### Changed
+- Sandbox: RESET now starts a new battle with freshly dealt hands, not just an empty grid.
+- Sandbox: once a battle is over, only RESET and BACK work.
+
 ## [0.9.0] - 2026-10-09
 
 ### Added

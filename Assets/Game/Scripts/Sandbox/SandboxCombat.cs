@@ -28,6 +28,22 @@ public static class SandboxCombat
     };
 
     /// <summary>
+    /// Decides who won once both hands are empty: the side with more blocks still
+    /// on the board. Returns null for a draw (the same number on both sides).
+    /// </summary>
+    public static SandboxSide? PickWinner(SandboxBoard board)
+    {
+        int playerBlocks = board.CountBlocks(SandboxSide.Player);
+        int enemyBlocks = board.CountBlocks(SandboxSide.Enemy);
+        if (playerBlocks == enemyBlocks)
+        {
+            return null;
+        }
+
+        return playerBlocks > enemyBlocks ? SandboxSide.Player : SandboxSide.Enemy;
+    }
+
+    /// <summary>
     /// Makes one block use its ability. Blocks destroyed by it are taken off
     /// the board and added to the "destroyed" list so the caller can count them.
     /// </summary>
