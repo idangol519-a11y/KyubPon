@@ -16,6 +16,14 @@ Made for KyubPon by the project owner. Not third-party, no license needed.
 |---|---|---|
 | Block skins (Red, Blue, Green, Yellow) | Idan | `Assets/StreamingAssets/Content/Blocks/` |
 
+## AI-generated content
+
+Listed so it can be declared in Steam's AI content disclosure.
+
+| Asset | Made by | Files |
+|---|---|---|
+| Orange block placeholder skin | Drawn by a script written by Claude (simple shapes, no image model) | `Assets/StreamingAssets/Content/Blocks/OrangeBlock/OrangeBlock.png` |
+
 ## Not cleared for release
 
 Used for local testing only. Kept out of Git. Must be replaced or licensed before the game is shared.

@@ -21,6 +21,9 @@ public static class SandboxCombat
     /// <summary>HP a Row Shot removes from each opposing block in the row.</summary>
     public const int RowShotDamage = 1;
 
+    /// <summary>HP the Legend removes from every opposing block on the board.</summary>
+    public const int LegendDamage = 1;
+
     /// <summary>The four squares next to a block: up, down, left, right.</summary>
     public static readonly Vector2Int[] Directions =
     {
@@ -61,6 +64,18 @@ public static class SandboxCombat
         List<Vector2Int> attackedSquares)
     {
         attackedSquares.Clear();
+        return UseAbility(board, block, destroyed, attackedSquares);
+    }
+
+    /// <summary>
+    /// Runs one block's ability and adds its hits to the list without clearing it,
+    /// so the Legend can run its friends' abilities and collect all their hits together.
+    /// Returns true if the ability did anything.
+    /// </summary>
+    private static bool UseAbility(SandboxBoard board, SandboxBlock block, List<SandboxBlock> destroyed,
+        List<Vector2Int> attackedSquares)
+    {
+        int hitsBefore = attackedSquares.Count;
         switch (block.Kind.Ability)
         {
             case SandboxAbility.Strike:
@@ -74,9 +89,53 @@ public static class SandboxCombat
             case SandboxAbility.RowShot:
                 ShootRow(board, block, destroyed, attackedSquares);
                 break;
+            case SandboxAbility.Legend:
+                bool friendsDidSomething = RetriggerNeighbours(board, block, destroyed, attackedSquares);
+                HitEveryOpponent(board, block, destroyed, attackedSquares);
+                return friendsDidSomething || attackedSquares.Count > hitsBefore;
         }
 
-        return attackedSquares.Count > 0;
+        return attackedSquares.Count > hitsBefore;
+    }
+
+    /// <summary>
+    /// Makes every friendly block next to the Legend use its ability again.
+    /// Another Legend is skipped: two of them side by side would otherwise
+    /// trigger each other forever.
+    /// </summary>
+    private static bool RetriggerNeighbours(SandboxBoard board, SandboxBlock block, List<SandboxBlock> destroyed,
+        List<Vector2Int> attackedSquares)
+    {
+        bool anyDidSomething = false;
+        foreach (Vector2Int direction in Directions)
+        {
+            SandboxBlock friend = board.GetBlock(block.Position + direction);
+            bool canRetrigger = friend != null && friend.Side == block.Side
+                && friend.Kind.Ability != SandboxAbility.Legend;
+            if (canRetrigger)
+            {
+                anyDidSomething |= UseAbility(board, friend, destroyed, attackedSquares);
+            }
+        }
+
+        return anyDidSomething;
+    }
+
+    private static void HitEveryOpponent(SandboxBoard board, SandboxBlock block, List<SandboxBlock> destroyed,
+        List<Vector2Int> attackedSquares)
+    {
+        for (int row = 0; row < board.Rows; row++)
+        {
+            for (int column = 0; column < board.Columns; column++)
+            {
+                SandboxBlock target = board.GetBlock(new Vector2Int(column, row));
+                if (IsOpponent(block, target))
+                {
+                    attackedSquares.Add(target.Position);
+                    Damage(board, target, LegendDamage, destroyed);
+                }
+            }
+        }
     }
 
     /// <summary>
@@ -107,6 +166,27 @@ public static class SandboxCombat
             case SandboxAbility.RowShot:
                 AddRow(board, block.Position, attackSquares);
                 break;
+            case SandboxAbility.Legend:
+                AddNeighbours(board, block.Position, 1, otherSquares);
+                AddEverySquareExcept(board, block.Position, otherSquares, attackSquares);
+                break;
+        }
+    }
+
+    /// <summary>Adds the whole board, leaving out the block's own square and the squares already listed.</summary>
+    private static void AddEverySquareExcept(SandboxBoard board, Vector2Int own, List<Vector2Int> alreadyListed,
+        List<Vector2Int> squares)
+    {
+        for (int row = 0; row < board.Rows; row++)
+        {
+            for (int column = 0; column < board.Columns; column++)
+            {
+                Vector2Int square = new Vector2Int(column, row);
+                if (square != own && !alreadyListed.Contains(square))
+                {
+                    squares.Add(square);
+                }
+            }
         }
     }
 

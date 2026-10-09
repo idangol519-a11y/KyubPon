@@ -27,7 +27,7 @@ public class SandboxHand
         _blocks.Clear();
         for (int count = 0; count < StartingSize; count++)
         {
-            _blocks.Add(SandboxCubeKind.All[random.Next(SandboxCubeKind.All.Length)]);
+            _blocks.Add(SandboxCubeKind.PickRandom(random));
         }
     }
 
