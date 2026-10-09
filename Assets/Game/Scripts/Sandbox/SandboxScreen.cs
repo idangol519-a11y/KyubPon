@@ -6,9 +6,11 @@ using UnityEngine.SceneManagement;
 
 /// <summary>
 /// TEMPORARY (sandbox test page, to be removed).
-/// A small battle test. Each turn the player drags one block onto the grid,
-/// the enemy places one of its own (marked with an X), and then every square
-/// is activated in order, starting from a random block.
+/// A small battle test. Both sides start with a hand of random blocks. Each turn
+/// the player drags one block from their hand onto the grid, the enemy places one
+/// of its own (marked with an X), and then every square is activated in order,
+/// starting from a random block. When both hands are empty, the side with more
+/// blocks left on the grid wins.
 /// Holding the mouse over a block for a moment shows a tooltip with its rules.
 /// This script only runs the turn and draws the board; the fighting rules are
 /// in SandboxCombat. See docs/GameState.md for how to remove the sandbox.
@@ -18,10 +20,11 @@ public class SandboxScreen : MonoBehaviour
     private const string HomeScreenSceneName = "HomeScreen";
     private const string YourTurnText = "YOUR TURN: DRAG A BLOCK ONTO THE GRID. HOVER A BLOCK FOR ITS RULES";
     private const string BoardFullText = "GRID IS FULL: PRESS PASS OR RESET";
+    private const string HandEmptyText = "YOUR HAND IS EMPTY: PRESS PASS";
     private const int StartColumns = SandboxGridSize.MinimumColumns;
     private const int StartRows = SandboxGridSize.MinimumRows;
     private const float GapBetweenCells = 8f;
-    private const float PaletteCubeSize = 96f;
+    private const float PaletteCubeSize = 64f;
 
     // Pauses that make a turn slow enough to follow.
     private const float EnemyThinkSeconds = 0.6f;
@@ -72,6 +75,12 @@ public class SandboxScreen : MonoBehaviour
     private SandboxGridSize _gridSize;
     private SandboxBoard _board;
     private SandboxEnemy _enemy;
+    private readonly SandboxHand _playerHand = new SandboxHand();
+    private readonly SandboxHand _enemyHand = new SandboxHand();
+    private readonly List<GameObject> _paletteCubes = new List<GameObject>();
+
+    // True once both hands are empty and a winner has been announced. Only RESET works then.
+    private bool _isBattleOver;
     private int _turnNumber = 1;
     private int _enemyBlocksDestroyed;
     private int _playerBlocksDestroyed;
@@ -105,8 +114,23 @@ public class SandboxScreen : MonoBehaviour
     private void Start()
     {
         HideTooltip();
-        BuildPalette();
         RebuildCells();
+        StartNewBattle();
+    }
+
+    /// <summary>Clears the grid and the counters and deals both sides a new random hand.</summary>
+    private void StartNewBattle()
+    {
+        _board.Clear();
+        _playerHand.Deal(_random);
+        _enemyHand.Deal(_random);
+        _turnNumber = 1;
+        _enemyBlocksDestroyed = 0;
+        _playerBlocksDestroyed = 0;
+        _isBattleOver = false;
+
+        DrawBoard();
+        DrawHand();
         ShowStats();
         ShowWhoseTurn();
     }
@@ -211,19 +235,20 @@ public class SandboxScreen : MonoBehaviour
     /// </summary>
     public void TryPlacePlayerBlock(SandboxCubeKind kind, Vector2Int position)
     {
-        if (_isTurnRunning || _board.GetBlock(position) != null)
+        if (_isTurnRunning || _isBattleOver || _board.GetBlock(position) != null || !_playerHand.Remove(kind))
         {
             return;
         }
 
         _board.Place(new SandboxBlock(kind, SandboxSide.Player), position);
         DrawBoard();
+        DrawHand();
         StartCoroutine(RunRestOfTurn());
     }
 
     private void PassTurn()
     {
-        if (!_isTurnRunning)
+        if (!_isTurnRunning && !_isBattleOver)
         {
             StartCoroutine(RunRestOfTurn());
         }
@@ -231,18 +256,10 @@ public class SandboxScreen : MonoBehaviour
 
     private void ResetBattle()
     {
-        if (_isTurnRunning)
+        if (!_isTurnRunning)
         {
-            return;
+            StartNewBattle();
         }
-
-        _board.Clear();
-        _turnNumber = 1;
-        _enemyBlocksDestroyed = 0;
-        _playerBlocksDestroyed = 0;
-        DrawBoard();
-        ShowStats();
-        ShowWhoseTurn();
     }
 
     private void ChangeGridSize(int columnChange, int rowChange)
@@ -276,14 +293,16 @@ public class SandboxScreen : MonoBehaviour
 
         _statusLabel.text = "ENEMY IS CHOOSING...";
         yield return _enemyThinkWait;
-        SandboxBlock enemyBlock = _enemy.PlaceBlock(_board);
-        _statusLabel.text = enemyBlock != null ? $"ENEMY PLACES {enemyBlock.Kind.Name}" : "ENEMY HAS NO ROOM";
+        SandboxBlock enemyBlock = _enemy.PlaceBlock(_board, _enemyHand);
+        _statusLabel.text = enemyBlock != null ? $"ENEMY PLACES {enemyBlock.Kind.Name}" : "ENEMY DOES NOT PLACE A BLOCK";
         DrawBoard();
+        ShowStats();
         yield return _enemyThinkWait;
 
         yield return ActivateEverySquare();
 
         _turnNumber++;
+        _isBattleOver = _playerHand.Count == 0 && _enemyHand.Count == 0;
         ShowStats();
         ShowWhoseTurn();
         _isTurnRunning = false;
@@ -367,15 +386,22 @@ public class SandboxScreen : MonoBehaviour
         return position.y * _board.Columns + position.x;
     }
 
-    /// <summary>Creates one block of each kind for the player to drag from.</summary>
-    private void BuildPalette()
+    /// <summary>Shows the blocks left in the player's hand under the grid, ready to be dragged.</summary>
+    private void DrawHand()
     {
-        foreach (SandboxCubeKind kind in SandboxCubeKind.All)
+        foreach (GameObject cube in _paletteCubes)
         {
-            SandboxPaletteCube cube = SandboxPaletteCube.Create(_palette, kind, this, _dragLayer);
+            Destroy(cube);
+        }
+        _paletteCubes.Clear();
+
+        for (int index = 0; index < _playerHand.Count; index++)
+        {
+            SandboxPaletteCube cube = SandboxPaletteCube.Create(_palette, _playerHand.GetBlock(index), this, _dragLayer);
             UnityEngine.UI.LayoutElement size = cube.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
             size.preferredWidth = PaletteCubeSize;
             size.preferredHeight = PaletteCubeSize;
+            _paletteCubes.Add(cube.gameObject);
         }
     }
 
@@ -441,16 +467,45 @@ public class SandboxScreen : MonoBehaviour
         }
     }
 
+    /// <summary>Sets the status line: the result if the battle is over, otherwise what the player can do now.</summary>
     private void ShowWhoseTurn()
     {
+        if (_isBattleOver)
+        {
+            _statusLabel.text = DescribeResult();
+            return;
+        }
+
         _board.CollectPositions(_blockSquares, true);
-        _statusLabel.text = _blockSquares.Count > 0 ? YourTurnText : BoardFullText;
+        if (_playerHand.Count == 0)
+        {
+            _statusLabel.text = HandEmptyText;
+        }
+        else
+        {
+            _statusLabel.text = _blockSquares.Count > 0 ? YourTurnText : BoardFullText;
+        }
+    }
+
+    private string DescribeResult()
+    {
+        int playerBlocks = _board.CountBlocks(SandboxSide.Player);
+        int enemyBlocks = _board.CountBlocks(SandboxSide.Enemy);
+        string count = $"{playerBlocks} OF YOUR BLOCKS LEFT, {enemyBlocks} ENEMY. PRESS RESET";
+
+        SandboxSide? winner = SandboxCombat.PickWinner(_board);
+        if (winner == null)
+        {
+            return $"DRAW: {count}";
+        }
+
+        return winner == SandboxSide.Player ? $"YOU WIN: {count}" : $"ENEMY WINS: {count}";
     }
 
     private void ShowStats()
     {
-        _statsLabel.text = $"TURN {_turnNumber}     ENEMY BLOCKS DESTROYED: {_enemyBlocksDestroyed}     " +
-            $"YOUR BLOCKS DESTROYED: {_playerBlocksDestroyed}";
+        _statsLabel.text = $"TURN {_turnNumber}     HAND: YOU {_playerHand.Count} / ENEMY {_enemyHand.Count}     " +
+            $"DESTROYED: ENEMY {_enemyBlocksDestroyed} / YOURS {_playerBlocksDestroyed}";
     }
 
     /// <summary>

@@ -4,8 +4,8 @@ using UnityEngine.EventSystems;
 
 /// <summary>
 /// TEMPORARY (sandbox test page, to be removed).
-/// A block in the palette under the grid. Dragging it carries a copy with the
-/// mouse; dropping the copy on an empty square places a player block there.
+/// One block of the player's hand, shown under the grid. Dragging it carries a copy
+/// with the mouse; dropping the copy on an empty square places the block there.
 /// </summary>
 public class SandboxPaletteCube : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler,
     IPointerEnterHandler, IPointerExitHandler
@@ -89,10 +89,10 @@ public class SandboxPaletteCube : MonoBehaviour, IBeginDragHandler, IDragHandler
         SandboxCell cell = FindCellUnderPointer(eventData);
         if (cell != null)
         {
-            _screen.TryPlacePlayerBlock(_kind, cell.GridPosition);
-
             // The mouse is already on this square, so Unity will not report "entering" it.
             // Start the hover by hand so the tooltip still appears if the mouse stays put.
+            // The screen redraws the hand after a block is placed, which removes this block from it.
+            _screen.TryPlacePlayerBlock(_kind, cell.GridPosition);
             _screen.StartHover(null, cell);
         }
     }

@@ -4,7 +4,7 @@ using UnityEngine;
 /// <summary>
 /// TEMPORARY (sandbox test page, to be removed).
 /// The computer opponent of the sandbox. It is deliberately simple: it picks a
-/// random kind of block and puts it next to one of the player's blocks when it
+/// random block from its hand and puts it next to one of the player's blocks when it
 /// can, so its blocks actually get into the fight.
 /// </summary>
 public class SandboxEnemy
@@ -20,12 +20,13 @@ public class SandboxEnemy
     }
 
     /// <summary>
-    /// Places one enemy block. Returns the block, or null when the board is full.
+    /// Places one enemy block taken from the enemy's hand. Returns the block,
+    /// or null when the hand is empty or the board is full.
     /// </summary>
-    public SandboxBlock PlaceBlock(SandboxBoard board)
+    public SandboxBlock PlaceBlock(SandboxBoard board, SandboxHand hand)
     {
         board.CollectPositions(_emptySquares, true);
-        if (_emptySquares.Count == 0)
+        if (_emptySquares.Count == 0 || hand.Count == 0)
         {
             return null;
         }
@@ -41,7 +42,7 @@ public class SandboxEnemy
 
         List<Vector2Int> choices = _squaresNextToPlayer.Count > 0 ? _squaresNextToPlayer : _emptySquares;
         Vector2Int position = choices[_random.Next(choices.Count)];
-        SandboxCubeKind kind = SandboxCubeKind.All[_random.Next(SandboxCubeKind.All.Length)];
+        SandboxCubeKind kind = hand.RemoveRandom(_random);
 
         SandboxBlock block = new SandboxBlock(kind, SandboxSide.Enemy);
         board.Place(block, position);
