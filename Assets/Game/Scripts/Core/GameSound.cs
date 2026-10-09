@@ -41,6 +41,9 @@ public enum GameSound
     /// <summary>A block heals its friends.</summary>
     Heal,
 
+    /// <summary>The legendary block uses its ability.</summary>
+    Legendary,
+
     /// <summary>A block is destroyed.</summary>
     BlockDestroyed,
 

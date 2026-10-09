@@ -14,5 +14,11 @@ public enum SandboxAbility
     Heal,
 
     /// <summary>Damages every opposing block in the same row.</summary>
-    RowShot
+    RowShot,
+
+    /// <summary>
+    /// The legendary ability: every friendly block next to it uses its own ability
+    /// a second time, and then every opposing block on the board is damaged.
+    /// </summary>
+    Legend
 }
