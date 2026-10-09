@@ -58,6 +58,32 @@ public class SandboxBoard
         Place(block, position);
     }
 
+    /// <summary>
+    /// Makes this board an exact copy of another one, for planning moves without
+    /// touching the real board. The copied blocks are taken from "spareBlocks"
+    /// (one per square of the largest board) instead of being newly created.
+    /// </summary>
+    public void CopyFrom(SandboxBoard source, SandboxBlock[] spareBlocks)
+    {
+        Clear();
+        Columns = source.Columns;
+        Rows = source.Rows;
+
+        for (int x = 0; x < Columns; x++)
+        {
+            for (int y = 0; y < Rows; y++)
+            {
+                SandboxBlock original = source._blocks[x, y];
+                if (original != null)
+                {
+                    SandboxBlock copy = spareBlocks[y * SandboxGridSize.MaximumColumns + x];
+                    copy.CopyFrom(original);
+                    _blocks[x, y] = copy;
+                }
+            }
+        }
+    }
+
     /// <summary>Removes every block.</summary>
     public void Clear()
     {
