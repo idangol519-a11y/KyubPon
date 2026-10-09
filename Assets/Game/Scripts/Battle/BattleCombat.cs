@@ -2,12 +2,11 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// TEMPORARY (sandbox test page, to be removed).
-/// The fighting rules of the sandbox: what each ability does to the board.
+/// The fighting rules of the battle: what each ability does to the board.
 /// Plain C# with no screen code, so the rules are in one place and easy to change.
 /// Both sides follow the same rules; "opposing" means a block of the other side.
 /// </summary>
-public static class SandboxCombat
+public static class BattleCombat
 {
     /// <summary>HP a Strike removes from each opposing block next to it.</summary>
     public const int StrikeDamage = 2;
@@ -35,22 +34,22 @@ public static class SandboxCombat
     /// board and none left in its hand. One side out means the other wins;
     /// both out at once is a draw.
     /// </summary>
-    public static SandboxOutcome GetOutcome(SandboxBoard board, int playerHandCount, int enemyHandCount)
+    public static BattleOutcome GetOutcome(BattleBoard board, int playerHandCount, int enemyHandCount)
     {
-        bool playerIsOut = playerHandCount == 0 && board.CountBlocks(SandboxSide.Player) == 0;
-        bool enemyIsOut = enemyHandCount == 0 && board.CountBlocks(SandboxSide.Enemy) == 0;
+        bool playerIsOut = playerHandCount == 0 && board.CountBlocks(BattleSide.Player) == 0;
+        bool enemyIsOut = enemyHandCount == 0 && board.CountBlocks(BattleSide.Enemy) == 0;
 
         if (playerIsOut && enemyIsOut)
         {
-            return SandboxOutcome.Draw;
+            return BattleOutcome.Draw;
         }
 
         if (playerIsOut)
         {
-            return SandboxOutcome.EnemyWins;
+            return BattleOutcome.EnemyWins;
         }
 
-        return enemyIsOut ? SandboxOutcome.PlayerWins : SandboxOutcome.Undecided;
+        return enemyIsOut ? BattleOutcome.PlayerWins : BattleOutcome.Undecided;
     }
 
     /// <summary>
@@ -60,7 +59,7 @@ public static class SandboxCombat
     /// (where that block stood when it was hit), so the caller can animate the hits.
     /// Returns true if the ability did anything: hit, pushed, or healed at least one block.
     /// </summary>
-    public static bool Activate(SandboxBoard board, SandboxBlock block, List<SandboxBlock> destroyed,
+    public static bool Activate(BattleBoard board, BattleBlock block, List<BattleBlock> destroyed,
         List<Vector2Int> attackedSquares)
     {
         attackedSquares.Clear();
@@ -72,24 +71,24 @@ public static class SandboxCombat
     /// so the Legend can run its friends' abilities and collect all their hits together.
     /// Returns true if the ability did anything.
     /// </summary>
-    private static bool UseAbility(SandboxBoard board, SandboxBlock block, List<SandboxBlock> destroyed,
+    private static bool UseAbility(BattleBoard board, BattleBlock block, List<BattleBlock> destroyed,
         List<Vector2Int> attackedSquares)
     {
         int hitsBefore = attackedSquares.Count;
         switch (block.Kind.Ability)
         {
-            case SandboxAbility.Strike:
+            case BattleAbility.Strike:
                 StrikeNeighbours(board, block, destroyed, attackedSquares);
                 break;
-            case SandboxAbility.Push:
+            case BattleAbility.Push:
                 PushNeighbours(board, block, destroyed, attackedSquares);
                 break;
-            case SandboxAbility.Heal:
+            case BattleAbility.Heal:
                 return HealNeighbours(board, block);
-            case SandboxAbility.RowShot:
+            case BattleAbility.RowShot:
                 ShootRow(board, block, destroyed, attackedSquares);
                 break;
-            case SandboxAbility.Legend:
+            case BattleAbility.Legend:
                 bool friendsDidSomething = RetriggerNeighbours(board, block, destroyed, attackedSquares);
                 HitEveryOpponent(board, block, destroyed, attackedSquares);
                 return friendsDidSomething || attackedSquares.Count > hitsBefore;
@@ -103,15 +102,15 @@ public static class SandboxCombat
     /// Another Legend is skipped: two of them side by side would otherwise
     /// trigger each other forever.
     /// </summary>
-    private static bool RetriggerNeighbours(SandboxBoard board, SandboxBlock block, List<SandboxBlock> destroyed,
+    private static bool RetriggerNeighbours(BattleBoard board, BattleBlock block, List<BattleBlock> destroyed,
         List<Vector2Int> attackedSquares)
     {
         bool anyDidSomething = false;
         foreach (Vector2Int direction in Directions)
         {
-            SandboxBlock friend = board.GetBlock(block.Position + direction);
+            BattleBlock friend = board.GetBlock(block.Position + direction);
             bool canRetrigger = friend != null && friend.Side == block.Side
-                && friend.Kind.Ability != SandboxAbility.Legend;
+                && friend.Kind.Ability != BattleAbility.Legend;
             if (canRetrigger)
             {
                 anyDidSomething |= UseAbility(board, friend, destroyed, attackedSquares);
@@ -121,14 +120,14 @@ public static class SandboxCombat
         return anyDidSomething;
     }
 
-    private static void HitEveryOpponent(SandboxBoard board, SandboxBlock block, List<SandboxBlock> destroyed,
+    private static void HitEveryOpponent(BattleBoard board, BattleBlock block, List<BattleBlock> destroyed,
         List<Vector2Int> attackedSquares)
     {
         for (int row = 0; row < board.Rows; row++)
         {
             for (int column = 0; column < board.Columns; column++)
             {
-                SandboxBlock target = board.GetBlock(new Vector2Int(column, row));
+                BattleBlock target = board.GetBlock(new Vector2Int(column, row));
                 if (IsOpponent(block, target))
                 {
                     attackedSquares.Add(target.Position);
@@ -145,7 +144,7 @@ public static class SandboxCombat
     /// or where a pushed block would end up. Squares off the board are left out.
     /// Keep this in step with the ability methods below.
     /// </summary>
-    public static void CollectAreaOfEffect(SandboxBoard board, SandboxBlock block,
+    public static void CollectAreaOfEffect(BattleBoard board, BattleBlock block,
         List<Vector2Int> attackSquares, List<Vector2Int> otherSquares)
     {
         attackSquares.Clear();
@@ -153,20 +152,20 @@ public static class SandboxCombat
 
         switch (block.Kind.Ability)
         {
-            case SandboxAbility.Strike:
+            case BattleAbility.Strike:
                 AddNeighbours(board, block.Position, 1, attackSquares);
                 break;
-            case SandboxAbility.Push:
+            case BattleAbility.Push:
                 AddNeighbours(board, block.Position, 1, attackSquares);
                 AddNeighbours(board, block.Position, 2, otherSquares);
                 break;
-            case SandboxAbility.Heal:
+            case BattleAbility.Heal:
                 AddNeighbours(board, block.Position, 1, otherSquares);
                 break;
-            case SandboxAbility.RowShot:
+            case BattleAbility.RowShot:
                 AddRow(board, block.Position, attackSquares);
                 break;
-            case SandboxAbility.Legend:
+            case BattleAbility.Legend:
                 AddNeighbours(board, block.Position, 1, otherSquares);
                 AddEverySquareExcept(board, block.Position, otherSquares, attackSquares);
                 break;
@@ -174,7 +173,7 @@ public static class SandboxCombat
     }
 
     /// <summary>Adds the whole board, leaving out the block's own square and the squares already listed.</summary>
-    private static void AddEverySquareExcept(SandboxBoard board, Vector2Int own, List<Vector2Int> alreadyListed,
+    private static void AddEverySquareExcept(BattleBoard board, Vector2Int own, List<Vector2Int> alreadyListed,
         List<Vector2Int> squares)
     {
         for (int row = 0; row < board.Rows; row++)
@@ -191,7 +190,7 @@ public static class SandboxCombat
     }
 
     /// <summary>Adds the squares that are a given number of steps away in each of the four directions.</summary>
-    private static void AddNeighbours(SandboxBoard board, Vector2Int center, int distance, List<Vector2Int> squares)
+    private static void AddNeighbours(BattleBoard board, Vector2Int center, int distance, List<Vector2Int> squares)
     {
         foreach (Vector2Int direction in Directions)
         {
@@ -203,7 +202,7 @@ public static class SandboxCombat
         }
     }
 
-    private static void AddRow(SandboxBoard board, Vector2Int center, List<Vector2Int> squares)
+    private static void AddRow(BattleBoard board, Vector2Int center, List<Vector2Int> squares)
     {
         for (int column = 0; column < board.Columns; column++)
         {
@@ -214,12 +213,12 @@ public static class SandboxCombat
         }
     }
 
-    private static void StrikeNeighbours(SandboxBoard board, SandboxBlock block, List<SandboxBlock> destroyed,
+    private static void StrikeNeighbours(BattleBoard board, BattleBlock block, List<BattleBlock> destroyed,
         List<Vector2Int> attackedSquares)
     {
         foreach (Vector2Int direction in Directions)
         {
-            SandboxBlock target = board.GetBlock(block.Position + direction);
+            BattleBlock target = board.GetBlock(block.Position + direction);
             if (IsOpponent(block, target))
             {
                 attackedSquares.Add(target.Position);
@@ -233,12 +232,12 @@ public static class SandboxCombat
     /// off the board the block is destroyed; if another block is in the way,
     /// the pushed block is hurt instead of moving.
     /// </summary>
-    private static void PushNeighbours(SandboxBoard board, SandboxBlock block, List<SandboxBlock> destroyed,
+    private static void PushNeighbours(BattleBoard board, BattleBlock block, List<BattleBlock> destroyed,
         List<Vector2Int> attackedSquares)
     {
         foreach (Vector2Int direction in Directions)
         {
-            SandboxBlock target = board.GetBlock(block.Position + direction);
+            BattleBlock target = board.GetBlock(block.Position + direction);
             if (!IsOpponent(block, target))
             {
                 continue;
@@ -263,12 +262,12 @@ public static class SandboxCombat
     }
 
     /// <summary>Heals friendly neighbours. Returns true if any of them actually gained HP.</summary>
-    private static bool HealNeighbours(SandboxBoard board, SandboxBlock block)
+    private static bool HealNeighbours(BattleBoard board, BattleBlock block)
     {
         bool healedSomeone = false;
         foreach (Vector2Int direction in Directions)
         {
-            SandboxBlock target = board.GetBlock(block.Position + direction);
+            BattleBlock target = board.GetBlock(block.Position + direction);
             if (target != null && target.Side == block.Side)
             {
                 int hpBefore = target.Hp;
@@ -280,12 +279,12 @@ public static class SandboxCombat
         return healedSomeone;
     }
 
-    private static void ShootRow(SandboxBoard board, SandboxBlock block, List<SandboxBlock> destroyed,
+    private static void ShootRow(BattleBoard board, BattleBlock block, List<BattleBlock> destroyed,
         List<Vector2Int> attackedSquares)
     {
         for (int column = 0; column < board.Columns; column++)
         {
-            SandboxBlock target = board.GetBlock(new Vector2Int(column, block.Position.y));
+            BattleBlock target = board.GetBlock(new Vector2Int(column, block.Position.y));
             if (IsOpponent(block, target))
             {
                 attackedSquares.Add(target.Position);
@@ -294,18 +293,18 @@ public static class SandboxCombat
         }
     }
 
-    private static bool IsOpponent(SandboxBlock block, SandboxBlock other)
+    private static bool IsOpponent(BattleBlock block, BattleBlock other)
     {
         return other != null && other.Side != block.Side;
     }
 
-    private static void Damage(SandboxBoard board, SandboxBlock target, int amount, List<SandboxBlock> destroyed)
+    private static void Damage(BattleBoard board, BattleBlock target, int amount, List<BattleBlock> destroyed)
     {
         target.TakeDamage(amount);
         RemoveDestroyed(board, target, destroyed);
     }
 
-    private static void RemoveDestroyed(SandboxBoard board, SandboxBlock target, List<SandboxBlock> destroyed)
+    private static void RemoveDestroyed(BattleBoard board, BattleBlock target, List<BattleBlock> destroyed)
     {
         if (!target.IsAlive)
         {

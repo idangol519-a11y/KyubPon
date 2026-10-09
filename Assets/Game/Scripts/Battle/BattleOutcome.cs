@@ -1,8 +1,7 @@
 /// <summary>
-/// TEMPORARY (sandbox test page, to be removed).
-/// How a sandbox battle stands: still going, won by one side, or drawn.
+/// How a battle stands: still going, won by one side, or drawn.
 /// </summary>
-public enum SandboxOutcome
+public enum BattleOutcome
 {
     /// <summary>The battle is still going.</summary>
     Undecided,

@@ -1,11 +1,10 @@
 using System;
 
 /// <summary>
-/// TEMPORARY (sandbox test page, to be removed).
-/// The size of the sandbox grid, kept inside its allowed limits.
+/// The size of the battle grid, kept inside its allowed limits.
 /// Change the constants below to change how small or large the grid may be.
 /// </summary>
-public class SandboxGridSize
+public class BattleGridSize
 {
     /// <summary>The grid can never be narrower than this.</summary>
     public const int MinimumColumns = 5;
@@ -26,7 +25,7 @@ public class SandboxGridSize
     public int Rows { get; private set; }
 
     /// <summary>Creates a grid size. Values outside the limits are pulled back inside them.</summary>
-    public SandboxGridSize(int columns, int rows)
+    public BattleGridSize(int columns, int rows)
     {
         Columns = Math.Clamp(columns, MinimumColumns, MaximumColumns);
         Rows = Math.Clamp(rows, MinimumRows, MaximumRows);

@@ -1,8 +1,7 @@
 /// <summary>
-/// TEMPORARY (sandbox test page, to be removed).
-/// Which side of the sandbox battle a block fights for.
+/// Which side of the battle a block fights for.
 /// </summary>
-public enum SandboxSide
+public enum BattleSide
 {
     /// <summary>Blocks placed by the player.</summary>
     Player,

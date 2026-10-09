@@ -3,15 +3,14 @@ using System.Text;
 using UnityEngine;
 
 /// <summary>
-/// TEMPORARY (sandbox test page, to be removed).
-/// The sandbox board: a grid of squares, each empty or holding one block.
-/// This class only stores where blocks are. The fighting rules are in SandboxCombat.
+/// The board: a grid of squares, each empty or holding one block.
+/// This class only stores where blocks are. The fighting rules are in BattleCombat.
 /// </summary>
-public class SandboxBoard
+public class BattleBoard
 {
     // Storage is always the largest allowed size, so resizing never has to copy blocks.
-    private readonly SandboxBlock[,] _blocks =
-        new SandboxBlock[SandboxGridSize.MaximumColumns, SandboxGridSize.MaximumRows];
+    private readonly BattleBlock[,] _blocks =
+        new BattleBlock[BattleGridSize.MaximumColumns, BattleGridSize.MaximumRows];
 
     /// <summary>How many squares wide the board is right now.</summary>
     public int Columns { get; private set; }
@@ -20,7 +19,7 @@ public class SandboxBoard
     public int Rows { get; private set; }
 
     /// <summary>Creates an empty board of the given size.</summary>
-    public SandboxBoard(int columns, int rows)
+    public BattleBoard(int columns, int rows)
     {
         Columns = columns;
         Rows = rows;
@@ -33,26 +32,26 @@ public class SandboxBoard
     }
 
     /// <summary>The block at a position, or null if the square is empty or off the board.</summary>
-    public SandboxBlock GetBlock(Vector2Int position)
+    public BattleBlock GetBlock(Vector2Int position)
     {
         return IsInside(position) ? _blocks[position.x, position.y] : null;
     }
 
     /// <summary>Puts a block on an empty square.</summary>
-    public void Place(SandboxBlock block, Vector2Int position)
+    public void Place(BattleBlock block, Vector2Int position)
     {
         _blocks[position.x, position.y] = block;
         block.Position = position;
     }
 
     /// <summary>Takes a block off the board.</summary>
-    public void Remove(SandboxBlock block)
+    public void Remove(BattleBlock block)
     {
         _blocks[block.Position.x, block.Position.y] = null;
     }
 
     /// <summary>Moves a block to another empty square.</summary>
-    public void Move(SandboxBlock block, Vector2Int position)
+    public void Move(BattleBlock block, Vector2Int position)
     {
         Remove(block);
         Place(block, position);
@@ -63,7 +62,7 @@ public class SandboxBoard
     /// touching the real board. The copied blocks are taken from "spareBlocks"
     /// (one per square of the largest board) instead of being newly created.
     /// </summary>
-    public void CopyFrom(SandboxBoard source, SandboxBlock[] spareBlocks)
+    public void CopyFrom(BattleBoard source, BattleBlock[] spareBlocks)
     {
         Clear();
         Columns = source.Columns;
@@ -73,10 +72,10 @@ public class SandboxBoard
         {
             for (int y = 0; y < Rows; y++)
             {
-                SandboxBlock original = source._blocks[x, y];
+                BattleBlock original = source._blocks[x, y];
                 if (original != null)
                 {
-                    SandboxBlock copy = spareBlocks[y * SandboxGridSize.MaximumColumns + x];
+                    BattleBlock copy = spareBlocks[y * BattleGridSize.MaximumColumns + x];
                     copy.CopyFrom(original);
                     _blocks[x, y] = copy;
                 }
@@ -96,9 +95,9 @@ public class SandboxBoard
     /// </summary>
     public void Resize(int columns, int rows)
     {
-        for (int x = 0; x < SandboxGridSize.MaximumColumns; x++)
+        for (int x = 0; x < BattleGridSize.MaximumColumns; x++)
         {
-            for (int y = 0; y < SandboxGridSize.MaximumRows; y++)
+            for (int y = 0; y < BattleGridSize.MaximumRows; y++)
             {
                 if (x >= columns || y >= rows)
                 {
@@ -125,14 +124,14 @@ public class SandboxBoard
         {
             for (int x = 0; x < Columns; x++)
             {
-                SandboxBlock block = _blocks[x, y];
+                BattleBlock block = _blocks[x, y];
                 if (block == null)
                 {
                     text.Append('.');
                 }
                 else
                 {
-                    text.Append(block.Side == SandboxSide.Player ? 'P' : 'E').Append(block.Kind.Name).Append(block.Hp);
+                    text.Append(block.Side == BattleSide.Player ? 'P' : 'E').Append(block.Kind.Name).Append(block.Hp);
                 }
 
                 text.Append('|');
@@ -143,7 +142,7 @@ public class SandboxBoard
     }
 
     /// <summary>Counts the blocks of one side.</summary>
-    public int CountBlocks(SandboxSide side)
+    public int CountBlocks(BattleSide side)
     {
         int count = 0;
         for (int x = 0; x < Columns; x++)

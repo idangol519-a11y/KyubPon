@@ -1,12 +1,11 @@
 using UnityEngine;
 
 /// <summary>
-/// TEMPORARY (sandbox test page, to be removed).
-/// One kind of sandbox block: its name, color, starting HP, and ability.
+/// One kind of block: its name, color, starting HP, and ability.
 /// Both sides use the same kinds; the enemy's copies are drawn with an X.
 /// To add or change a block, edit the list in <see cref="All"/>.
 /// </summary>
-public class SandboxCubeKind
+public class BattleCubeKind
 {
     // How likely a kind is to be dealt, compared with the others. A common block is
     // four times as likely as the legendary one, so most hands hold no orange block
@@ -15,23 +14,23 @@ public class SandboxCubeKind
     private const int LegendaryDealWeight = 1;
 
     /// <summary>Every kind of block, in the order shown in the palette and the rules note.</summary>
-    public static readonly SandboxCubeKind[] All =
+    public static readonly BattleCubeKind[] All =
     {
-        new SandboxCubeKind("RED", "RedBlock", new Color(0.90f, 0.30f, 0.25f), 6, CommonDealWeight,
-            SandboxAbility.Strike, "STRIKES", GameSound.Strike,
-            $"-{SandboxCombat.StrikeDamage} HP TO EACH ENEMY NEXT TO IT"),
-        new SandboxCubeKind("BLUE", "BlueBlock", new Color(0.25f, 0.60f, 0.95f), 8, CommonDealWeight,
-            SandboxAbility.Push, "PUSHES", GameSound.Push,
-            $"PUSHES EACH ENEMY NEXT TO IT 1 SQUARE AWAY. OFF THE EDGE = DESTROYED. BLOCKED = -{SandboxCombat.BlockedPushDamage} HP"),
-        new SandboxCubeKind("GREEN", "GreenBlock", new Color(0.35f, 0.80f, 0.40f), 5, CommonDealWeight,
-            SandboxAbility.Heal, "HEALS", GameSound.Heal,
-            $"+{SandboxCombat.HealAmount} HP TO EACH FRIEND NEXT TO IT"),
-        new SandboxCubeKind("YELLOW", "YellowBlock", new Color(1.00f, 0.82f, 0.20f), 4, CommonDealWeight,
-            SandboxAbility.RowShot, "SHOOTS", GameSound.RowShot,
-            $"-{SandboxCombat.RowShotDamage} HP TO EVERY ENEMY IN ITS ROW"),
-        new SandboxCubeKind("ORANGE", "OrangeBlock", new Color(1.00f, 0.55f, 0.10f), 7, LegendaryDealWeight,
-            SandboxAbility.Legend, "GOES WILD", GameSound.Legendary,
-            $"LEGENDARY. EVERY FRIEND NEXT TO IT USES ITS ABILITY AGAIN. THEN -{SandboxCombat.LegendDamage} HP TO EVERY ENEMY ON THE GRID")
+        new BattleCubeKind("RED", "RedBlock", new Color(0.90f, 0.30f, 0.25f), 6, CommonDealWeight,
+            BattleAbility.Strike, "STRIKES", GameSound.Strike,
+            $"-{BattleCombat.StrikeDamage} HP TO EACH ENEMY NEXT TO IT"),
+        new BattleCubeKind("BLUE", "BlueBlock", new Color(0.25f, 0.60f, 0.95f), 8, CommonDealWeight,
+            BattleAbility.Push, "PUSHES", GameSound.Push,
+            $"PUSHES EACH ENEMY NEXT TO IT 1 SQUARE AWAY. OFF THE EDGE = DESTROYED. BLOCKED = -{BattleCombat.BlockedPushDamage} HP"),
+        new BattleCubeKind("GREEN", "GreenBlock", new Color(0.35f, 0.80f, 0.40f), 5, CommonDealWeight,
+            BattleAbility.Heal, "HEALS", GameSound.Heal,
+            $"+{BattleCombat.HealAmount} HP TO EACH FRIEND NEXT TO IT"),
+        new BattleCubeKind("YELLOW", "YellowBlock", new Color(1.00f, 0.82f, 0.20f), 4, CommonDealWeight,
+            BattleAbility.RowShot, "SHOOTS", GameSound.RowShot,
+            $"-{BattleCombat.RowShotDamage} HP TO EVERY ENEMY IN ITS ROW"),
+        new BattleCubeKind("ORANGE", "OrangeBlock", new Color(1.00f, 0.55f, 0.10f), 7, LegendaryDealWeight,
+            BattleAbility.Legend, "GOES WILD", GameSound.Legendary,
+            $"LEGENDARY. EVERY FRIEND NEXT TO IT USES ITS ABILITY AGAIN. THEN -{BattleCombat.LegendDamage} HP TO EVERY ENEMY ON THE GRID")
     };
 
     /// <summary>The name shown to the player, for example "RED".</summary>
@@ -56,7 +55,7 @@ public class SandboxCubeKind
     public int DealWeight { get; }
 
     /// <summary>What this block does when it is activated.</summary>
-    public SandboxAbility Ability { get; }
+    public BattleAbility Ability { get; }
 
     /// <summary>A word or two for the status line, for example "STRIKES".</summary>
     public string ActionWord { get; }
@@ -71,16 +70,16 @@ public class SandboxCubeKind
     /// Picks a random kind for a hand. Kinds with a higher deal weight come up more often.
     /// It works like a raffle: each kind holds as many tickets as its weight, and one ticket is drawn.
     /// </summary>
-    public static SandboxCubeKind PickRandom(System.Random random)
+    public static BattleCubeKind PickRandom(System.Random random)
     {
         int totalTickets = 0;
-        foreach (SandboxCubeKind kind in All)
+        foreach (BattleCubeKind kind in All)
         {
             totalTickets += kind.DealWeight;
         }
 
         int ticket = random.Next(totalTickets);
-        foreach (SandboxCubeKind kind in All)
+        foreach (BattleCubeKind kind in All)
         {
             if (ticket < kind.DealWeight)
             {
@@ -91,6 +90,23 @@ public class SandboxCubeKind
         }
 
         return All[0];
+    }
+
+    /// <summary>
+    /// Finds a kind by its skin name, for example "RedBlock". This is the name a
+    /// saved battle stores. Returns null if no kind has that name.
+    /// </summary>
+    public static BattleCubeKind FindBySkinName(string skinName)
+    {
+        foreach (BattleCubeKind kind in All)
+        {
+            if (kind.SkinName == skinName)
+            {
+                return kind;
+            }
+        }
+
+        return null;
     }
 
     /// <summary>
@@ -108,8 +124,8 @@ public class SandboxCubeKind
         image.color = Color.Lerp(baseColor, Color.black, darkening);
     }
 
-    private SandboxCubeKind(string name, string skinName, Color color, int maxHp, int dealWeight,
-        SandboxAbility ability, string actionWord, GameSound sound, string ruleText)
+    private BattleCubeKind(string name, string skinName, Color color, int maxHp, int dealWeight,
+        BattleAbility ability, string actionWord, GameSound sound, string ruleText)
     {
         Name = name;
         SkinName = skinName;

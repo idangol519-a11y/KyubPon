@@ -6,18 +6,19 @@ using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// TEMPORARY (sandbox test page, to be removed).
-/// A small battle test. Both sides start with a hand of random blocks. Each turn
+/// The battle screen, opened by New Game and Continue on the Home screen. Both sides start with a hand of random blocks. Each turn
 /// the player drags one block from their hand onto the grid, the enemy places one
 /// of its own (marked with an X), and then every square is activated once, either
 /// left to right from a random block or in a random order (the ORDER button). Once the hands are empty the turns keep playing
 /// by themselves until one side has no blocks left (the other side wins) or the
 /// board has looked exactly the same three times (a draw).
 /// Holding the mouse over a block for a moment shows a tooltip with its rules.
+/// The battle is saved after every turn (an "AUTOSAVING..." note shows for a moment),
+/// so Continue brings it back exactly as it was at the end of the last finished turn.
 /// This script only runs the turn and draws the board; the fighting rules are
-/// in SandboxCombat. See docs/GameState.md for how to remove the sandbox.
+/// in BattleCombat and the save file is handled by BattleSave.
 /// </summary>
-public class SandboxScreen : MonoBehaviour
+public class BattleScreen : MonoBehaviour
 {
     private const string HomeScreenSceneName = "HomeScreen";
     private const string YourTurnText = "YOUR TURN: DRAG A BLOCK ONTO THE GRID. HOVER A BLOCK FOR ITS RULES";
@@ -30,8 +31,8 @@ public class SandboxScreen : MonoBehaviour
 
     // A last safety stop, in case a battle somehow never ends and never repeats.
     private const int MostTurnsPerBattle = 300;
-    private const int StartColumns = SandboxGridSize.MinimumColumns;
-    private const int StartRows = SandboxGridSize.MinimumRows;
+    private const int StartColumns = BattleGridSize.MinimumColumns;
+    private const int StartRows = BattleGridSize.MinimumRows;
     private const float GapBetweenCells = 8f;
     private const float PaletteCubeSize = 64f;
 
@@ -39,6 +40,9 @@ public class SandboxScreen : MonoBehaviour
     private const float EnemyThinkSeconds = 0.6f;
     private const float EmptySquareSeconds = 0.04f;
     private const float BlockSquareSeconds = 0.55f;
+
+    // How long the "AUTOSAVING..." note stays on screen after each save.
+    private const float AutosaveLabelSeconds = 1.2f;
 
     // How long the mouse must rest on a block before its rules appear,
     // and how far from the mouse the tooltip is drawn (in screen pixels).
@@ -63,6 +67,7 @@ public class SandboxScreen : MonoBehaviour
     [SerializeField] private UnityEngine.UI.Text _rowsLabel;
     [SerializeField] private UnityEngine.UI.Text _statusLabel;
     [SerializeField] private UnityEngine.UI.Text _statsLabel;
+    [SerializeField] private UnityEngine.UI.Text _autosaveLabel;
     [SerializeField] private UnityEngine.UI.Button _fewerColumnsButton;
     [SerializeField] private UnityEngine.UI.Button _moreColumnsButton;
     [SerializeField] private UnityEngine.UI.Button _fewerRowsButton;
@@ -73,26 +78,27 @@ public class SandboxScreen : MonoBehaviour
     [SerializeField] private UnityEngine.UI.Button _resetButton;
     [SerializeField] private UnityEngine.UI.Button _backButton;
 
-    private readonly List<SandboxCell> _cells = new List<SandboxCell>();
+    private readonly List<BattleCell> _cells = new List<BattleCell>();
     private readonly List<Vector2Int> _blockSquares = new List<Vector2Int>();
-    private readonly List<SandboxBlock> _destroyedBlocks = new List<SandboxBlock>();
+    private readonly List<BattleBlock> _destroyedBlocks = new List<BattleBlock>();
     private readonly List<Vector2Int> _attackSquares = new List<Vector2Int>();
     private readonly List<Vector2Int> _hitSquares = new List<Vector2Int>();
     private readonly List<int> _visitOrder = new List<int>();
     private readonly Dictionary<string, int> _timesPositionSeen = new Dictionary<string, int>();
     private readonly StringBuilder _positionText = new StringBuilder();
     private readonly List<Vector2Int> _otherEffectSquares = new List<Vector2Int>();
-    private readonly HashSet<SandboxBlock> _blocksThatActed = new HashSet<SandboxBlock>();
+    private readonly HashSet<BattleBlock> _blocksThatActed = new HashSet<BattleBlock>();
     private readonly System.Random _random = new System.Random();
     private readonly WaitForSeconds _enemyThinkWait = new WaitForSeconds(EnemyThinkSeconds);
     private readonly WaitForSeconds _emptySquareWait = new WaitForSeconds(EmptySquareSeconds);
     private readonly WaitForSeconds _blockSquareWait = new WaitForSeconds(BlockSquareSeconds);
+    private readonly WaitForSeconds _autosaveLabelWait = new WaitForSeconds(AutosaveLabelSeconds);
 
-    private SandboxGridSize _gridSize;
-    private SandboxBoard _board;
-    private SandboxEnemy _enemy;
-    private readonly SandboxHand _playerHand = new SandboxHand();
-    private readonly SandboxHand _enemyHand = new SandboxHand();
+    private BattleGridSize _gridSize;
+    private BattleBoard _board;
+    private BattleEnemy _enemy;
+    private readonly BattleHand _playerHand = new BattleHand();
+    private readonly BattleHand _enemyHand = new BattleHand();
     private readonly List<GameObject> _paletteCubes = new List<GameObject>();
 
     // True once a winner or a draw has been announced. Only RESET and BACK work then.
@@ -103,6 +109,9 @@ public class SandboxScreen : MonoBehaviour
     private bool _isRandomOrder;
     private string _resultText;
     private float _cellSize;
+
+    // The running "show the autosave note, then hide it" routine, so a new save can restart it.
+    private Coroutine _autosaveLabelRoutine;
 
     // How many hits have landed this turn. Each one plays a higher "hit chain" sound.
     private int _hitsThisTurn;
@@ -118,14 +127,14 @@ public class SandboxScreen : MonoBehaviour
     private bool _isHovering;
     private bool _isDraggingBlock;
     private float _hoverStartTime;
-    private SandboxCubeKind _hoveredPaletteKind;
-    private SandboxCell _hoveredCell;
+    private BattleCubeKind _hoveredPaletteKind;
+    private BattleCell _hoveredCell;
 
     private void Awake()
     {
-        _gridSize = new SandboxGridSize(StartColumns, StartRows);
-        _board = new SandboxBoard(_gridSize.Columns, _gridSize.Rows);
-        _enemy = new SandboxEnemy(_random);
+        _gridSize = new BattleGridSize(StartColumns, StartRows);
+        _board = new BattleBoard(_gridSize.Columns, _gridSize.Rows);
+        _enemy = new BattleEnemy(_random);
 
         _fewerColumnsButton.onClick.AddListener(() => ChangeGridSize(-1, 0));
         _moreColumnsButton.onClick.AddListener(() => ChangeGridSize(1, 0));
@@ -140,9 +149,21 @@ public class SandboxScreen : MonoBehaviour
     private void Start()
     {
         HideTooltip();
-        RebuildCells();
-        ShowActivationOrder();
-        StartNewBattle();
+        _autosaveLabel.gameObject.SetActive(false);
+
+        // Continue arrives here with a save on disk. New Game deletes the save first,
+        // so it arrives with none and a fresh battle is dealt.
+        BattleSaveData savedBattle = BattleSave.Load();
+        if (savedBattle != null)
+        {
+            RestoreBattle(savedBattle);
+        }
+        else
+        {
+            RebuildCells();
+            ShowActivationOrder();
+            StartNewBattle();
+        }
     }
 
     /// <summary>
@@ -153,6 +174,12 @@ public class SandboxScreen : MonoBehaviour
     {
         _isRandomOrder = !_isRandomOrder;
         ShowActivationOrder();
+
+        // In the middle of a turn the board is half-changed, so the save waits for the turn to end.
+        if (!_isTurnRunning)
+        {
+            Autosave();
+        }
     }
 
     private void ShowActivationOrder()
@@ -177,6 +204,146 @@ public class SandboxScreen : MonoBehaviour
         ShowStats();
         ShowWhoseTurn();
         GameAudio.Play(GameSound.DealHands);
+        Autosave();
+    }
+
+    /// <summary>
+    /// Writes the battle to the save file and shows the "AUTOSAVING..." note for a moment.
+    /// Only called between turns, so a saved battle never holds a half-played turn.
+    /// </summary>
+    private void Autosave()
+    {
+        BattleSave.Save(CaptureBattle());
+
+        if (_autosaveLabelRoutine != null)
+        {
+            StopCoroutine(_autosaveLabelRoutine);
+        }
+
+        _autosaveLabelRoutine = StartCoroutine(ShowAutosaveLabel());
+    }
+
+    private IEnumerator ShowAutosaveLabel()
+    {
+        _autosaveLabel.gameObject.SetActive(true);
+        yield return _autosaveLabelWait;
+        _autosaveLabel.gameObject.SetActive(false);
+        _autosaveLabelRoutine = null;
+    }
+
+    /// <summary>Copies everything about the battle into save data.</summary>
+    private BattleSaveData CaptureBattle()
+    {
+        BattleSaveData data = new BattleSaveData
+        {
+            Columns = _board.Columns,
+            Rows = _board.Rows,
+            TurnNumber = _turnNumber,
+            EnemyBlocksDestroyed = _enemyBlocksDestroyed,
+            PlayerBlocksDestroyed = _playerBlocksDestroyed,
+            IsRandomOrder = _isRandomOrder,
+            IsBattleOver = _isBattleOver,
+            ResultText = _resultText
+        };
+
+        _board.CollectPositions(_blockSquares, false);
+        foreach (Vector2Int square in _blockSquares)
+        {
+            BattleBlock block = _board.GetBlock(square);
+            data.Blocks.Add(new BattleSavedBlock
+            {
+                Kind = block.Kind.SkinName,
+                IsEnemy = block.Side == BattleSide.Enemy,
+                Hp = block.Hp,
+                Column = square.x,
+                Row = square.y
+            });
+        }
+
+        CaptureHand(_playerHand, data.PlayerHand);
+        CaptureHand(_enemyHand, data.EnemyHand);
+
+        foreach (KeyValuePair<string, int> seen in _timesPositionSeen)
+        {
+            data.SeenPositions.Add(seen.Key);
+            data.SeenPositionCounts.Add(seen.Value);
+        }
+
+        return data;
+    }
+
+    private static void CaptureHand(BattleHand hand, List<string> kindNames)
+    {
+        for (int index = 0; index < hand.Count; index++)
+        {
+            kindNames.Add(hand.GetBlock(index).SkinName);
+        }
+    }
+
+    /// <summary>
+    /// Puts a saved battle back on screen. Anything in the save that no longer
+    /// makes sense (an unknown block, a square off the grid) is skipped with a warning.
+    /// </summary>
+    private void RestoreBattle(BattleSaveData data)
+    {
+        _gridSize = new BattleGridSize(data.Columns, data.Rows);
+        _board.Clear();
+        _board.Resize(_gridSize.Columns, _gridSize.Rows);
+
+        foreach (BattleSavedBlock saved in data.Blocks)
+        {
+            BattleCubeKind kind = BattleCubeKind.FindBySkinName(saved.Kind);
+            Vector2Int square = new Vector2Int(saved.Column, saved.Row);
+            if (kind == null || !_board.IsInside(square) || _board.GetBlock(square) != null)
+            {
+                Debug.LogWarning($"[Warn] Saved battle: skipped block '{saved.Kind}' at column {saved.Column}, row {saved.Row}.");
+                continue;
+            }
+
+            BattleBlock block = new BattleBlock(kind, saved.IsEnemy ? BattleSide.Enemy : BattleSide.Player);
+            block.RestoreHp(saved.Hp);
+            _board.Place(block, square);
+        }
+
+        RestoreHand(_playerHand, data.PlayerHand);
+        RestoreHand(_enemyHand, data.EnemyHand);
+
+        _turnNumber = Mathf.Max(1, data.TurnNumber);
+        _enemyBlocksDestroyed = data.EnemyBlocksDestroyed;
+        _playerBlocksDestroyed = data.PlayerBlocksDestroyed;
+        _isRandomOrder = data.IsRandomOrder;
+        _isBattleOver = data.IsBattleOver;
+        _resultText = data.ResultText;
+
+        _timesPositionSeen.Clear();
+        int seenCount = Mathf.Min(data.SeenPositions.Count, data.SeenPositionCounts.Count);
+        for (int index = 0; index < seenCount; index++)
+        {
+            _timesPositionSeen[data.SeenPositions[index]] = data.SeenPositionCounts[index];
+        }
+
+        RebuildCells();
+        DrawHand();
+        ShowActivationOrder();
+        ShowStats();
+        ShowWhoseTurn();
+        Debug.Log($"[Info] Continued the saved battle at turn {_turnNumber}.");
+    }
+
+    private static void RestoreHand(BattleHand hand, List<string> kindNames)
+    {
+        hand.Clear();
+        foreach (string kindName in kindNames)
+        {
+            BattleCubeKind kind = BattleCubeKind.FindBySkinName(kindName);
+            if (kind == null)
+            {
+                Debug.LogWarning($"[Warn] Saved battle: skipped unknown block '{kindName}' in a hand.");
+                continue;
+            }
+
+            hand.Add(kind);
+        }
     }
 
     private void Update()
@@ -192,7 +359,7 @@ public class SandboxScreen : MonoBehaviour
     /// Called when the mouse moves onto a palette block (pass its kind) or a
     /// grid square (pass the cell). The tooltip appears if the mouse stays there.
     /// </summary>
-    public void StartHover(SandboxCubeKind paletteKind, SandboxCell cell)
+    public void StartHover(BattleCubeKind paletteKind, BattleCell cell)
     {
         // No tooltip while a block is being dragged across the grid.
         if (_isDraggingBlock)
@@ -215,7 +382,7 @@ public class SandboxScreen : MonoBehaviour
     /// but only if that is still the thing being hovered. Unity can report "left the
     /// old one" after "entered the new one", and that late report must not cancel the new hover.
     /// </summary>
-    public void EndHover(SandboxCubeKind paletteKind, SandboxCell cell)
+    public void EndHover(BattleCubeKind paletteKind, BattleCell cell)
     {
         if (_hoveredPaletteKind == paletteKind && _hoveredCell == cell)
         {
@@ -249,18 +416,18 @@ public class SandboxScreen : MonoBehaviour
     /// </summary>
     private void ShowAreaOfEffect()
     {
-        foreach (SandboxCell cell in _cells)
+        foreach (BattleCell cell in _cells)
         {
             cell.HideAreaTint();
         }
 
-        SandboxBlock block = _hoveredCell != null ? _board.GetBlock(_hoveredCell.GridPosition) : null;
+        BattleBlock block = _hoveredCell != null ? _board.GetBlock(_hoveredCell.GridPosition) : null;
         if (block == null)
         {
             return;
         }
 
-        SandboxCombat.CollectAreaOfEffect(_board, block, _attackSquares, _otherEffectSquares);
+        BattleCombat.CollectAreaOfEffect(_board, block, _attackSquares, _otherEffectSquares);
         foreach (Vector2Int square in _attackSquares)
         {
             _cells[IndexOf(square)].ShowAreaTint(AttackAreaColor);
@@ -277,7 +444,7 @@ public class SandboxScreen : MonoBehaviour
     /// Places the block if it is the player's turn and the square is empty,
     /// then lets the rest of the turn play out.
     /// </summary>
-    public void TryPlacePlayerBlock(SandboxCubeKind kind, Vector2Int position)
+    public void TryPlacePlayerBlock(BattleCubeKind kind, Vector2Int position)
     {
         if (_isTurnRunning || _isBattleOver || _board.GetBlock(position) != null || !_playerHand.Remove(kind))
         {
@@ -285,7 +452,7 @@ public class SandboxScreen : MonoBehaviour
             return;
         }
 
-        _board.Place(new SandboxBlock(kind, SandboxSide.Player), position);
+        _board.Place(new BattleBlock(kind, BattleSide.Player), position);
         GameAudio.Play(GameSound.BlockPlace);
         DrawBoard();
         DrawHand();
@@ -321,6 +488,7 @@ public class SandboxScreen : MonoBehaviour
         RebuildCells();
         ShowStats();
         ShowWhoseTurn();
+        Autosave();
     }
 
     private void ReturnToHomeScreen()
@@ -351,6 +519,7 @@ public class SandboxScreen : MonoBehaviour
             _turnNumber++;
             CheckForEndOfBattle();
             ShowStats();
+            Autosave();
         }
         while (!_isBattleOver && _playerHand.Count == 0);
 
@@ -362,7 +531,7 @@ public class SandboxScreen : MonoBehaviour
     {
         _statusLabel.text = "ENEMY IS CHOOSING...";
         yield return _enemyThinkWait;
-        SandboxBlock enemyBlock = _enemy.PlaceBlock(_board, _enemyHand, _isRandomOrder);
+        BattleBlock enemyBlock = _enemy.PlaceBlock(_board, _enemyHand, _isRandomOrder);
         _statusLabel.text = enemyBlock != null ? $"ENEMY PLACES {enemyBlock.Kind.Name}" : "ENEMY HAS NO ROOM TO PLACE";
         if (enemyBlock != null)
         {
@@ -379,20 +548,20 @@ public class SandboxScreen : MonoBehaviour
     /// </summary>
     private void CheckForEndOfBattle()
     {
-        SandboxOutcome outcome = SandboxCombat.GetOutcome(_board, _playerHand.Count, _enemyHand.Count);
-        if (outcome == SandboxOutcome.PlayerWins)
+        BattleOutcome outcome = BattleCombat.GetOutcome(_board, _playerHand.Count, _enemyHand.Count);
+        if (outcome == BattleOutcome.PlayerWins)
         {
             EndBattle("YOU WIN: THE ENEMY HAS NO BLOCKS LEFT", GameSound.Win);
             return;
         }
 
-        if (outcome == SandboxOutcome.EnemyWins)
+        if (outcome == BattleOutcome.EnemyWins)
         {
             EndBattle("ENEMY WINS: YOU HAVE NO BLOCKS LEFT", GameSound.Lose);
             return;
         }
 
-        if (outcome == SandboxOutcome.Draw)
+        if (outcome == BattleOutcome.Draw)
         {
             EndBattle("DRAW: NOBODY HAS BLOCKS LEFT", GameSound.Draw);
             return;
@@ -429,12 +598,12 @@ public class SandboxScreen : MonoBehaviour
     {
         _blocksThatActed.Clear();
         _hitsThisTurn = 0;
-        SandboxActivation.BuildVisitOrder(_board, _random, _isRandomOrder, _visitOrder, _blockSquares);
+        BattleActivation.BuildVisitOrder(_board, _random, _isRandomOrder, _visitOrder, _blockSquares);
 
         for (int step = 0; step < _visitOrder.Count; step++)
         {
-            SandboxCell cell = _cells[_visitOrder[step]];
-            SandboxBlock block = _board.GetBlock(cell.GridPosition);
+            BattleCell cell = _cells[_visitOrder[step]];
+            BattleBlock block = _board.GetBlock(cell.GridPosition);
             cell.SetHighlight(true, HighlightColor);
 
             if (block != null && _blocksThatActed.Add(block))
@@ -451,22 +620,22 @@ public class SandboxScreen : MonoBehaviour
         }
     }
 
-    private void ActivateBlock(SandboxBlock block)
+    private void ActivateBlock(BattleBlock block)
     {
         // Remember where the block stands now: the slashes are drawn from here.
         Vector2Int attackerSquare = block.Position;
         _destroyedBlocks.Clear();
-        bool didSomething = SandboxCombat.Activate(_board, block, _destroyedBlocks, _hitSquares);
+        bool didSomething = BattleCombat.Activate(_board, block, _destroyedBlocks, _hitSquares);
         foreach (Vector2Int hitSquare in _hitSquares)
         {
-            SandboxSlashEffect.Play(_gridArea, PositionOfSquare(attackerSquare), PositionOfSquare(hitSquare), _cellSize);
+            BattleSlashEffect.Play(_gridArea, PositionOfSquare(attackerSquare), PositionOfSquare(hitSquare), _cellSize);
         }
 
         PlayActivationSounds(block, didSomething);
 
-        foreach (SandboxBlock destroyed in _destroyedBlocks)
+        foreach (BattleBlock destroyed in _destroyedBlocks)
         {
-            if (destroyed.Side == SandboxSide.Enemy)
+            if (destroyed.Side == BattleSide.Enemy)
             {
                 _enemyBlocksDestroyed++;
             }
@@ -476,7 +645,7 @@ public class SandboxScreen : MonoBehaviour
             }
         }
 
-        string owner = block.Side == SandboxSide.Enemy ? "ENEMY" : "YOUR";
+        string owner = block.Side == BattleSide.Enemy ? "ENEMY" : "YOUR";
         _statusLabel.text = $"{owner} {block.Kind.Name} {block.Kind.ActionWord}";
         DrawBoard();
         ShowStats();
@@ -487,7 +656,7 @@ public class SandboxScreen : MonoBehaviour
     /// each hit (so a turn full of hits climbs in pitch), and a bang if a block died.
     /// A block whose ability reached nothing stays silent.
     /// </summary>
-    private void PlayActivationSounds(SandboxBlock block, bool didSomething)
+    private void PlayActivationSounds(BattleBlock block, bool didSomething)
     {
         if (didSomething)
         {
@@ -512,7 +681,7 @@ public class SandboxScreen : MonoBehaviour
     /// </summary>
     private int IndexOf(Vector2Int position)
     {
-        return SandboxActivation.IndexOf(_board, position);
+        return BattleActivation.IndexOf(_board, position);
     }
 
     /// <summary>Shows the blocks left in the player's hand under the grid, ready to be dragged.</summary>
@@ -526,7 +695,7 @@ public class SandboxScreen : MonoBehaviour
 
         for (int index = 0; index < _playerHand.Count; index++)
         {
-            SandboxPaletteCube cube = SandboxPaletteCube.Create(_palette, _playerHand.GetBlock(index), this, _dragLayer);
+            BattlePaletteCube cube = BattlePaletteCube.Create(_palette, _playerHand.GetBlock(index), this, _dragLayer);
             UnityEngine.UI.LayoutElement size = cube.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
             size.preferredWidth = PaletteCubeSize;
             size.preferredHeight = PaletteCubeSize;
@@ -539,7 +708,7 @@ public class SandboxScreen : MonoBehaviour
     {
         // The square under the mouse is about to be destroyed.
         StopHover();
-        foreach (SandboxCell cell in _cells)
+        foreach (BattleCell cell in _cells)
         {
             Destroy(cell.gameObject);
         }
@@ -568,7 +737,7 @@ public class SandboxScreen : MonoBehaviour
 
     private void CreateCell(Vector2Int gridPosition)
     {
-        SandboxCell cell = SandboxCell.Create(_gridArea, gridPosition, CellColor, _font, this);
+        BattleCell cell = BattleCell.Create(_gridArea, gridPosition, CellColor, _font, this);
         _cells.Add(cell);
 
         RectTransform rect = (RectTransform)cell.transform;
@@ -591,7 +760,7 @@ public class SandboxScreen : MonoBehaviour
     /// <summary>Makes every square on screen show what the board holds.</summary>
     private void DrawBoard()
     {
-        foreach (SandboxCell cell in _cells)
+        foreach (BattleCell cell in _cells)
         {
             cell.Show(_board.GetBlock(cell.GridPosition));
         }
@@ -631,15 +800,15 @@ public class SandboxScreen : MonoBehaviour
     /// </summary>
     private void ShowTooltip()
     {
-        SandboxBlock block = _hoveredCell != null ? _board.GetBlock(_hoveredCell.GridPosition) : null;
-        SandboxCubeKind kind = block != null ? block.Kind : _hoveredPaletteKind;
+        BattleBlock block = _hoveredCell != null ? _board.GetBlock(_hoveredCell.GridPosition) : null;
+        BattleCubeKind kind = block != null ? block.Kind : _hoveredPaletteKind;
         if (kind == null)
         {
             HideTooltip();
             return;
         }
 
-        string owner = block == null ? string.Empty : block.Side == SandboxSide.Enemy ? "ENEMY " : "YOUR ";
+        string owner = block == null ? string.Empty : block.Side == BattleSide.Enemy ? "ENEMY " : "YOUR ";
         string hp = block == null ? $"HP {kind.MaxHp}" : $"HP {block.Hp} / {kind.MaxHp}";
         string colorCode = ColorUtility.ToHtmlStringRGB(kind.Color);
         _tooltipText.text = $"<size={TooltipTitleFontSize}>{owner}<color=#{colorCode}>{kind.Name}</color></size>\n{hp}\n\n{kind.RuleText}";

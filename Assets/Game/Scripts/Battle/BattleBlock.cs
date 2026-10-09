@@ -1,17 +1,16 @@
 using UnityEngine;
 
 /// <summary>
-/// TEMPORARY (sandbox test page, to be removed).
-/// One block on the sandbox board: what kind it is, whose side it is on,
+/// One block on the board: what kind it is, whose side it is on,
 /// how much HP it has left, and where it stands.
 /// </summary>
-public class SandboxBlock
+public class BattleBlock
 {
     /// <summary>The block's kind: its color, starting HP, and ability.</summary>
-    public SandboxCubeKind Kind { get; private set; }
+    public BattleCubeKind Kind { get; private set; }
 
     /// <summary>The side this block fights for.</summary>
-    public SandboxSide Side { get; private set; }
+    public BattleSide Side { get; private set; }
 
     /// <summary>Health left. The block is destroyed when this reaches 0.</summary>
     public int Hp { get; private set; }
@@ -23,7 +22,7 @@ public class SandboxBlock
     public bool IsAlive => Hp > 0;
 
     /// <summary>Creates a block at full HP.</summary>
-    public SandboxBlock(SandboxCubeKind kind, SandboxSide side)
+    public BattleBlock(BattleCubeKind kind, BattleSide side)
     {
         Reset(kind, side);
     }
@@ -32,20 +31,29 @@ public class SandboxBlock
     /// Creates a blank block to be filled in later with Reset or CopyFrom.
     /// The enemy keeps a set of these to plan with, instead of creating new blocks all the time.
     /// </summary>
-    public SandboxBlock()
+    public BattleBlock()
     {
     }
 
     /// <summary>Turns this block into a fresh one of the given kind and side, at full HP.</summary>
-    public void Reset(SandboxCubeKind kind, SandboxSide side)
+    public void Reset(BattleCubeKind kind, BattleSide side)
     {
         Kind = kind;
         Side = side;
         Hp = kind.MaxHp;
     }
 
+    /// <summary>
+    /// Sets the HP directly, for a block read back from a saved battle.
+    /// The value is kept between 0 and the kind's starting HP.
+    /// </summary>
+    public void RestoreHp(int hp)
+    {
+        Hp = Mathf.Clamp(hp, 0, Kind.MaxHp);
+    }
+
     /// <summary>Makes this block an exact copy of another one.</summary>
-    public void CopyFrom(SandboxBlock other)
+    public void CopyFrom(BattleBlock other)
     {
         Kind = other.Kind;
         Side = other.Side;
