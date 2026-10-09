@@ -13,8 +13,12 @@ public class SettingsPanel : MonoBehaviour
     private const string FullscreenOffText = "FULLSCREEN: OFF";
     private const float PercentScale = 100f;
 
-    [SerializeField] private UnityEngine.UI.Slider _volumeSlider;
-    [SerializeField] private UnityEngine.UI.Text _volumeValueLabel;
+    [SerializeField] private UnityEngine.UI.Slider _masterSlider;
+    [SerializeField] private UnityEngine.UI.Text _masterValueLabel;
+    [SerializeField] private UnityEngine.UI.Slider _musicSlider;
+    [SerializeField] private UnityEngine.UI.Text _musicValueLabel;
+    [SerializeField] private UnityEngine.UI.Slider _soundSlider;
+    [SerializeField] private UnityEngine.UI.Text _soundValueLabel;
     [SerializeField] private UnityEngine.UI.Button _fullscreenButton;
     [SerializeField] private UnityEngine.UI.Text _fullscreenLabel;
     [SerializeField] private UnityEngine.UI.Button _previousResolutionButton;
@@ -31,7 +35,9 @@ public class SettingsPanel : MonoBehaviour
 
     private void Awake()
     {
-        _volumeSlider.onValueChanged.AddListener(ChangeVolume);
+        _masterSlider.onValueChanged.AddListener(ChangeMasterVolume);
+        _musicSlider.onValueChanged.AddListener(ChangeMusicVolume);
+        _soundSlider.onValueChanged.AddListener(ChangeSoundVolume);
         _fullscreenButton.onClick.AddListener(ToggleFullscreen);
         _previousResolutionButton.onClick.AddListener(SelectPreviousResolution);
         _nextResolutionButton.onClick.AddListener(SelectNextResolution);
@@ -46,7 +52,7 @@ public class SettingsPanel : MonoBehaviour
 
         BuildResolutionList();
         ShowCurrentValues();
-        EventSystem.current.SetSelectedGameObject(_volumeSlider.gameObject);
+        EventSystem.current.SetSelectedGameObject(_masterSlider.gameObject);
     }
 
     private void Close()
@@ -84,20 +90,40 @@ public class SettingsPanel : MonoBehaviour
 
     private void ShowCurrentValues()
     {
-        // SetValueWithoutNotify moves the slider without triggering ChangeVolume.
-        _volumeSlider.SetValueWithoutNotify(_settings.MasterVolume);
-        ShowVolume();
+        // SetValueWithoutNotify moves a slider without triggering its "changed" method.
+        _masterSlider.SetValueWithoutNotify(_settings.MasterVolume);
+        _musicSlider.SetValueWithoutNotify(_settings.MusicVolume);
+        _soundSlider.SetValueWithoutNotify(_settings.SoundVolume);
+        ShowVolumes();
         ShowFullscreen();
         ShowResolution();
     }
 
-    private void ChangeVolume(float volume)
+    // The three "Change...Volume" methods do not save: they run many times a second
+    // while a slider is dragged. The volumes are written to disk once, when the panel closes.
+
+    private void ChangeMasterVolume(float volume)
     {
         _settings.MasterVolume = volume;
+        ApplyAndShowVolumes();
+    }
+
+    private void ChangeMusicVolume(float volume)
+    {
+        _settings.MusicVolume = volume;
+        ApplyAndShowVolumes();
+    }
+
+    private void ChangeSoundVolume(float volume)
+    {
+        _settings.SoundVolume = volume;
+        ApplyAndShowVolumes();
+    }
+
+    private void ApplyAndShowVolumes()
+    {
         _settings.ApplyAudio();
-        ShowVolume();
-        // Not saved here: this runs many times a second while the slider is dragged.
-        // The volume is written to disk once, when the panel closes.
+        ShowVolumes();
     }
 
     private void ToggleFullscreen()
@@ -133,9 +159,16 @@ public class SettingsPanel : MonoBehaviour
         _settings.Save();
     }
 
-    private void ShowVolume()
+    private void ShowVolumes()
     {
-        _volumeValueLabel.text = $"{Mathf.RoundToInt(_settings.MasterVolume * PercentScale)}%";
+        _masterValueLabel.text = FormatPercent(_settings.MasterVolume);
+        _musicValueLabel.text = FormatPercent(_settings.MusicVolume);
+        _soundValueLabel.text = FormatPercent(_settings.SoundVolume);
+    }
+
+    private static string FormatPercent(float volume)
+    {
+        return $"{Mathf.RoundToInt(volume * PercentScale)}%";
     }
 
     private void ShowFullscreen()

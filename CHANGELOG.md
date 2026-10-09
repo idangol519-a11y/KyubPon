@@ -6,6 +6,20 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-09
+
+### Added
+- Sound. `GameAudio` plays a looping soundtrack and sound effects, and keeps playing across scenes.
+- Settings: three volume sliders, MASTER, MUSIC, and SFX, each remembered between sessions.
+- Menu sounds: every button has a hover sound and a click sound, and leaving the title screen plays a jingle.
+- Sandbox sounds: picking up and placing a block, the enemy placing, a move that is not allowed, dealing new hands, each block's ability (strike, push, row shot, heal), a block being destroyed, and win, lose, and draw jingles. Hits within one turn play a rising note, so a turn with many hits climbs in pitch.
+
+### Changed
+- Settings: the single VOLUME slider is now MASTER, which scales music and effects together.
+
+### Notes
+- The sound files are **temporary** and are not in Git. They come from a "400 Sounds Pack" and a soundtrack MP3 supplied by Idan, whose licenses are not confirmed. Without them the game runs silently and logs a warning for each missing file.
+
 ## [0.11.0] - 2026-10-09
 
 ### Added

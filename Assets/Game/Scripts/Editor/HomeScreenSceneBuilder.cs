@@ -22,12 +22,13 @@ public static class HomeScreenSceneBuilder
     private const int SettingFontSize = 32;
 
     private const float MenuSpacing = 40f;
-    private const float SettingsSpacing = 56f;
+    private const float SettingsSpacing = 40f;
     private const float RowSpacing = 32f;
     private const float TitleOffsetFromTop = 150f;
     private const float SliderWidth = 480f;
     private const float SliderHeight = 40f;
     private const float VolumeValueWidth = 128f;
+    private const float VolumeLabelWidth = 192f;
     private const float ResolutionValueWidth = 352f;
 
     private static readonly Vector2 TitleSize = new Vector2(1600f, 120f);
@@ -104,7 +105,9 @@ public static class HomeScreenSceneBuilder
         SerializedObject panelData = new SerializedObject(settingsPanel);
 
         ui.CreateLabel(panel, "Heading", "SETTINGS", HeadingFontSize);
-        BuildVolumeRow(ui, panel, panelData);
+        BuildVolumeRow(ui, panel, panelData, "Master", "MASTER", "_masterSlider", "_masterValueLabel");
+        BuildVolumeRow(ui, panel, panelData, "Music", "MUSIC", "_musicSlider", "_musicValueLabel");
+        BuildVolumeRow(ui, panel, panelData, "Sound", "SFX", "_soundSlider", "_soundValueLabel");
 
         UnityEngine.UI.Button fullscreenButton = ui.CreateTextButton(panel, "FullscreenButton", "FULLSCREEN: OFF", SettingFontSize);
         SceneBuilderTools.SetReference(panelData, "_fullscreenButton", fullscreenButton);
@@ -118,16 +121,22 @@ public static class HomeScreenSceneBuilder
         return settingsPanel;
     }
 
-    private static void BuildVolumeRow(MenuUiBuilder ui, Transform panel, SerializedObject panelData)
+    /// <summary>Builds one volume line: a name, a slider, and the value as a percentage.</summary>
+    private static void BuildVolumeRow(MenuUiBuilder ui, Transform panel, SerializedObject panelData,
+        string objectName, string caption, string sliderField, string valueField)
     {
-        Transform row = ui.CreateRow(panel, "VolumeRow", RowSpacing);
-        ui.CreateLabel(row, "VolumeLabel", "VOLUME", SettingFontSize);
-        SceneBuilderTools.SetReference(panelData, "_volumeSlider", ui.CreateSlider(row, "VolumeSlider", SliderWidth, SliderHeight));
+        Transform row = ui.CreateRow(panel, objectName + "VolumeRow", RowSpacing);
+
+        // The three names have different lengths. A fixed width keeps the sliders lined up.
+        UnityEngine.UI.Text label = ui.CreateLabel(row, objectName + "VolumeLabel", caption, SettingFontSize);
+        ui.SetFixedSize(label.gameObject, VolumeLabelWidth, SettingFontSize);
+
+        SceneBuilderTools.SetReference(panelData, sliderField, ui.CreateSlider(row, objectName + "VolumeSlider", SliderWidth, SliderHeight));
 
         // A fixed width stops the row from shifting when the number changes length.
-        UnityEngine.UI.Text value = ui.CreateLabel(row, "VolumeValue", "100%", SettingFontSize);
+        UnityEngine.UI.Text value = ui.CreateLabel(row, objectName + "VolumeValue", "100%", SettingFontSize);
         ui.SetFixedSize(value.gameObject, VolumeValueWidth, SettingFontSize);
-        SceneBuilderTools.SetReference(panelData, "_volumeValueLabel", value);
+        SceneBuilderTools.SetReference(panelData, valueField, value);
     }
 
     private static void BuildResolutionRow(MenuUiBuilder ui, Transform panel, SerializedObject panelData)

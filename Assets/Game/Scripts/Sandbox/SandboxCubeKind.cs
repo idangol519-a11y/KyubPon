@@ -11,13 +11,13 @@ public class SandboxCubeKind
     /// <summary>Every kind of block, in the order shown in the palette and the rules note.</summary>
     public static readonly SandboxCubeKind[] All =
     {
-        new SandboxCubeKind("RED", "RedBlock", new Color(0.90f, 0.30f, 0.25f), 6, SandboxAbility.Strike, "STRIKES",
+        new SandboxCubeKind("RED", "RedBlock", new Color(0.90f, 0.30f, 0.25f), 6, SandboxAbility.Strike, "STRIKES", GameSound.Strike,
             $"-{SandboxCombat.StrikeDamage} HP TO EACH ENEMY NEXT TO IT"),
-        new SandboxCubeKind("BLUE", "BlueBlock", new Color(0.25f, 0.60f, 0.95f), 8, SandboxAbility.Push, "PUSHES",
+        new SandboxCubeKind("BLUE", "BlueBlock", new Color(0.25f, 0.60f, 0.95f), 8, SandboxAbility.Push, "PUSHES", GameSound.Push,
             $"PUSHES EACH ENEMY NEXT TO IT 1 SQUARE AWAY. OFF THE EDGE = DESTROYED. BLOCKED = -{SandboxCombat.BlockedPushDamage} HP"),
-        new SandboxCubeKind("GREEN", "GreenBlock", new Color(0.35f, 0.80f, 0.40f), 5, SandboxAbility.Heal, "HEALS",
+        new SandboxCubeKind("GREEN", "GreenBlock", new Color(0.35f, 0.80f, 0.40f), 5, SandboxAbility.Heal, "HEALS", GameSound.Heal,
             $"+{SandboxCombat.HealAmount} HP TO EACH FRIEND NEXT TO IT"),
-        new SandboxCubeKind("YELLOW", "YellowBlock", new Color(1.00f, 0.82f, 0.20f), 4, SandboxAbility.RowShot, "SHOOTS",
+        new SandboxCubeKind("YELLOW", "YellowBlock", new Color(1.00f, 0.82f, 0.20f), 4, SandboxAbility.RowShot, "SHOOTS", GameSound.RowShot,
             $"-{SandboxCombat.RowShotDamage} HP TO EVERY ENEMY IN ITS ROW")
     };
 
@@ -45,6 +45,9 @@ public class SandboxCubeKind
     /// <summary>One word for the status line, for example "STRIKES".</summary>
     public string ActionWord { get; }
 
+    /// <summary>The sound played when the ability does something.</summary>
+    public GameSound Sound { get; }
+
     /// <summary>The ability in words, shown in the rules note.</summary>
     public string RuleText { get; }
 
@@ -63,7 +66,7 @@ public class SandboxCubeKind
         image.color = Color.Lerp(baseColor, Color.black, darkening);
     }
 
-    private SandboxCubeKind(string name, string skinName, Color color, int maxHp, SandboxAbility ability, string actionWord, string ruleText)
+    private SandboxCubeKind(string name, string skinName, Color color, int maxHp, SandboxAbility ability, string actionWord, GameSound sound, string ruleText)
     {
         Name = name;
         SkinName = skinName;
@@ -71,6 +74,7 @@ public class SandboxCubeKind
         MaxHp = maxHp;
         Ability = ability;
         ActionWord = actionWord;
+        Sound = sound;
         RuleText = ruleText;
     }
 }

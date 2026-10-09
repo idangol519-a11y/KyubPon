@@ -34,6 +34,7 @@ public class DropScreen : MonoBehaviour
         {
             // Loading takes a moment; this stops a second press from loading twice.
             _isLeaving = true;
+            GameAudio.Play(GameSound.TitleStart);
             SceneManager.LoadScene(HomeScreenSceneName);
         }
     }

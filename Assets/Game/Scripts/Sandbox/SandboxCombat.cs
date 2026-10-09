@@ -55,8 +55,9 @@ public static class SandboxCombat
     /// the board and added to the "destroyed" list so the caller can count them.
     /// "attackedSquares" is filled with the square of every block it attacked
     /// (where that block stood when it was hit), so the caller can animate the hits.
+    /// Returns true if the ability did anything: hit, pushed, or healed at least one block.
     /// </summary>
-    public static void Activate(SandboxBoard board, SandboxBlock block, List<SandboxBlock> destroyed,
+    public static bool Activate(SandboxBoard board, SandboxBlock block, List<SandboxBlock> destroyed,
         List<Vector2Int> attackedSquares)
     {
         attackedSquares.Clear();
@@ -69,12 +70,13 @@ public static class SandboxCombat
                 PushNeighbours(board, block, destroyed, attackedSquares);
                 break;
             case SandboxAbility.Heal:
-                HealNeighbours(board, block);
-                break;
+                return HealNeighbours(board, block);
             case SandboxAbility.RowShot:
                 ShootRow(board, block, destroyed, attackedSquares);
                 break;
         }
+
+        return attackedSquares.Count > 0;
     }
 
     /// <summary>
@@ -180,16 +182,22 @@ public static class SandboxCombat
         }
     }
 
-    private static void HealNeighbours(SandboxBoard board, SandboxBlock block)
+    /// <summary>Heals friendly neighbours. Returns true if any of them actually gained HP.</summary>
+    private static bool HealNeighbours(SandboxBoard board, SandboxBlock block)
     {
+        bool healedSomeone = false;
         foreach (Vector2Int direction in Directions)
         {
             SandboxBlock target = board.GetBlock(block.Position + direction);
             if (target != null && target.Side == block.Side)
             {
+                int hpBefore = target.Hp;
                 target.Heal(HealAmount);
+                healedSomeone |= target.Hp > hpBefore;
             }
         }
+
+        return healedSomeone;
     }
 
     private static void ShootRow(SandboxBoard board, SandboxBlock block, List<SandboxBlock> destroyed,
