@@ -18,7 +18,7 @@ public static class SandboxSceneBuilder
     private const int HeadingFontSize = 48;
     private const int ControlFontSize = 32;
     private const int NoteFontSize = 24;
-    private const int TooltipFontSize = 16;
+    private const int TooltipFontSize = 24;
 
     // The top of the page is kept thin so the grid gets as much height as possible.
     private const float HeadingOffsetFromTop = 24f;
@@ -33,9 +33,9 @@ public static class SandboxSceneBuilder
     private const float SizeValueWidth = 96f;
     private const float GapBetweenControlGroups = 96f;
 
-    private const float TooltipWidth = 460f;
-    private const int TooltipPadding = 20;
-    private const float TooltipBorderWidth = 3f;
+    private const float TooltipWidth = 760f;
+    private const int TooltipPadding = 28;
+    private const float TooltipBorderWidth = 4f;
 
     // The pixel font's lines sit very close together, so wrapped text needs extra room.
     private const float TooltipLineSpacing = 1.6f;
@@ -49,7 +49,7 @@ public static class SandboxSceneBuilder
     private static readonly Vector2 GridAreaSize = new Vector2(1800f, 680f);
     private static readonly Vector2 PaletteSize = new Vector2(1100f, 100f);
     private static readonly Vector2 BottomButtonSize = new Vector2(200f, 100f);
-    private static readonly Color TooltipBackgroundColor = new Color(0.04f, 0.04f, 0.07f, 0.96f);
+    private static readonly Color TooltipBackgroundColor = new Color(0.02f, 0.02f, 0.04f, 1f);
     private static readonly Color TooltipBorderColor = new Color(0.92f, 0.92f, 0.92f);
 
     // Where the three bottom buttons sit, measured sideways from the middle of the screen.
@@ -229,6 +229,8 @@ public static class SandboxSceneBuilder
         text.alignment = TextAnchor.UpperLeft;
         text.horizontalOverflow = HorizontalWrapMode.Wrap;
         text.lineSpacing = TooltipLineSpacing;
+        text.fontStyle = FontStyle.Bold;
+        text.color = Color.white;
 
         SceneBuilderTools.SetReference(data, "_tooltip", rect);
         SceneBuilderTools.SetReference(data, "_tooltipText", text);

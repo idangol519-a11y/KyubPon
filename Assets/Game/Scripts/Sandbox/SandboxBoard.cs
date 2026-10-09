@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 
 /// <summary>
@@ -82,6 +83,37 @@ public class SandboxBoard
 
         Columns = columns;
         Rows = rows;
+    }
+
+    /// <summary>
+    /// Describes the whole board as one line of text: its size and, for every
+    /// square, which block is on it and how much HP that block has. Two boards
+    /// that look exactly the same give exactly the same text, which is how a
+    /// repeated position is recognised.
+    /// </summary>
+    public string DescribePosition(StringBuilder text)
+    {
+        text.Clear();
+        text.Append(Columns).Append('x').Append(Rows).Append(':');
+        for (int y = 0; y < Rows; y++)
+        {
+            for (int x = 0; x < Columns; x++)
+            {
+                SandboxBlock block = _blocks[x, y];
+                if (block == null)
+                {
+                    text.Append('.');
+                }
+                else
+                {
+                    text.Append(block.Side == SandboxSide.Player ? 'P' : 'E').Append(block.Kind.Name).Append(block.Hp);
+                }
+
+                text.Append('|');
+            }
+        }
+
+        return text.ToString();
     }
 
     /// <summary>Counts the blocks of one side.</summary>

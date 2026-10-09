@@ -6,6 +6,18 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-10-09
+
+### Added
+- Sandbox: a slash animation is drawn between an attacking block and each block it hits (strike, push, and row shot).
+- `EffectFramesLoader`: loads a frame-by-frame effect from numbered PNG files in `Assets/StreamingAssets/Content/Effects/<Name>/`. If the frames are missing, a plain white streak is drawn instead.
+- Sandbox: a battle is a draw when the board has looked exactly the same 3 times.
+
+### Changed
+- Sandbox: the rules tooltip is larger and bold, on a solid black background, with the block's name as a big title.
+- Sandbox: the area-of-effect color is now drawn under the blocks. An empty square is filled with the color; an occupied square shows it as a frame around the block.
+- Sandbox: winning. Once your hand is empty the turns play by themselves. A side loses when it has no blocks on the grid and none in hand. This replaces "most blocks left when the hands run out".
+
 ## [0.10.0] - 2026-10-09
 
 ### Added

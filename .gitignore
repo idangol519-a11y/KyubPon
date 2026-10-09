@@ -38,3 +38,7 @@ crashlytics-build.properties
 # Scene backups Unity keeps after the Editor closes unexpectedly
 /Assets/_Recovery/
 /Assets/_Recovery.meta
+
+# Attack effect frames made from a GIF whose license is not confirmed. Kept on this PC only.
+/Assets/StreamingAssets/Content/Effects/
+/Assets/StreamingAssets/Content/Effects.meta

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
@@ -9,8 +10,9 @@ using UnityEngine.SceneManagement;
 /// A small battle test. Both sides start with a hand of random blocks. Each turn
 /// the player drags one block from their hand onto the grid, the enemy places one
 /// of its own (marked with an X), and then every square is activated in order,
-/// starting from a random block. When both hands are empty, the side with more
-/// blocks left on the grid wins.
+/// starting from a random block. Once the hands are empty the turns keep playing
+/// by themselves until one side has no blocks left (the other side wins) or the
+/// board has looked exactly the same three times (a draw).
 /// Holding the mouse over a block for a moment shows a tooltip with its rules.
 /// This script only runs the turn and draws the board; the fighting rules are
 /// in SandboxCombat. See docs/GameState.md for how to remove the sandbox.
@@ -20,7 +22,12 @@ public class SandboxScreen : MonoBehaviour
     private const string HomeScreenSceneName = "HomeScreen";
     private const string YourTurnText = "YOUR TURN: DRAG A BLOCK ONTO THE GRID. HOVER A BLOCK FOR ITS RULES";
     private const string BoardFullText = "GRID IS FULL: PRESS PASS OR RESET";
-    private const string HandEmptyText = "YOUR HAND IS EMPTY: PRESS PASS";
+
+    // The battle is a draw when the board has looked exactly the same this many times.
+    private const int RepeatsForDraw = 3;
+
+    // A last safety stop, in case a battle somehow never ends and never repeats.
+    private const int MostTurnsPerBattle = 300;
     private const int StartColumns = SandboxGridSize.MinimumColumns;
     private const int StartRows = SandboxGridSize.MinimumRows;
     private const float GapBetweenCells = 8f;
@@ -35,13 +42,14 @@ public class SandboxScreen : MonoBehaviour
     // and how far from the mouse the tooltip is drawn (in screen pixels).
     private const float HoverSecondsBeforeTooltip = 1f;
     private const float TooltipDistanceFromPointer = 20f;
+    private const int TooltipTitleFontSize = 40;
 
     private static readonly Color CellColor = new Color(0.17f, 0.17f, 0.24f);
     private static readonly Color HighlightColor = new Color(0.55f, 0.55f, 0.70f);
 
-    // See-through tints for a hovered block's area of effect.
-    private static readonly Color AttackAreaColor = new Color(0.95f, 0.15f, 0.15f, 0.45f);
-    private static readonly Color OtherAreaColor = new Color(0.20f, 0.50f, 1.00f, 0.45f);
+    // Square colors for a hovered block's area of effect.
+    private static readonly Color AttackAreaColor = new Color(0.80f, 0.16f, 0.18f);
+    private static readonly Color OtherAreaColor = new Color(0.16f, 0.40f, 0.85f);
 
     [SerializeField] private RectTransform _gridArea;
     [SerializeField] private RectTransform _dragLayer;
@@ -65,6 +73,9 @@ public class SandboxScreen : MonoBehaviour
     private readonly List<Vector2Int> _blockSquares = new List<Vector2Int>();
     private readonly List<SandboxBlock> _destroyedBlocks = new List<SandboxBlock>();
     private readonly List<Vector2Int> _attackSquares = new List<Vector2Int>();
+    private readonly List<Vector2Int> _hitSquares = new List<Vector2Int>();
+    private readonly Dictionary<string, int> _timesPositionSeen = new Dictionary<string, int>();
+    private readonly StringBuilder _positionText = new StringBuilder();
     private readonly List<Vector2Int> _otherEffectSquares = new List<Vector2Int>();
     private readonly HashSet<SandboxBlock> _blocksThatActed = new HashSet<SandboxBlock>();
     private readonly System.Random _random = new System.Random();
@@ -79,8 +90,10 @@ public class SandboxScreen : MonoBehaviour
     private readonly SandboxHand _enemyHand = new SandboxHand();
     private readonly List<GameObject> _paletteCubes = new List<GameObject>();
 
-    // True once both hands are empty and a winner has been announced. Only RESET works then.
+    // True once a winner or a draw has been announced. Only RESET and BACK work then.
     private bool _isBattleOver;
+    private string _resultText;
+    private float _cellSize;
     private int _turnNumber = 1;
     private int _enemyBlocksDestroyed;
     private int _playerBlocksDestroyed;
@@ -128,6 +141,7 @@ public class SandboxScreen : MonoBehaviour
         _enemyBlocksDestroyed = 0;
         _playerBlocksDestroyed = 0;
         _isBattleOver = false;
+        _timesPositionSeen.Clear();
 
         DrawBoard();
         DrawHand();
@@ -291,21 +305,80 @@ public class SandboxScreen : MonoBehaviour
     {
         _isTurnRunning = true;
 
+        // With an empty hand the player has nothing to decide, so turns keep
+        // playing by themselves until the battle is settled.
+        do
+        {
+            if (_enemyHand.Count > 0)
+            {
+                yield return PlaceEnemyBlock();
+            }
+
+            yield return ActivateEverySquare();
+
+            _turnNumber++;
+            CheckForEndOfBattle();
+            ShowStats();
+        }
+        while (!_isBattleOver && _playerHand.Count == 0);
+
+        ShowWhoseTurn();
+        _isTurnRunning = false;
+    }
+
+    private IEnumerator PlaceEnemyBlock()
+    {
         _statusLabel.text = "ENEMY IS CHOOSING...";
         yield return _enemyThinkWait;
         SandboxBlock enemyBlock = _enemy.PlaceBlock(_board, _enemyHand);
-        _statusLabel.text = enemyBlock != null ? $"ENEMY PLACES {enemyBlock.Kind.Name}" : "ENEMY DOES NOT PLACE A BLOCK";
+        _statusLabel.text = enemyBlock != null ? $"ENEMY PLACES {enemyBlock.Kind.Name}" : "ENEMY HAS NO ROOM TO PLACE";
         DrawBoard();
         ShowStats();
         yield return _enemyThinkWait;
+    }
 
-        yield return ActivateEverySquare();
+    /// <summary>
+    /// Ends the battle if one side is out of blocks, or if the board has now
+    /// looked exactly the same three times, which means nothing more will change.
+    /// </summary>
+    private void CheckForEndOfBattle()
+    {
+        SandboxOutcome outcome = SandboxCombat.GetOutcome(_board, _playerHand.Count, _enemyHand.Count);
+        if (outcome == SandboxOutcome.PlayerWins)
+        {
+            EndBattle("YOU WIN: THE ENEMY HAS NO BLOCKS LEFT");
+            return;
+        }
 
-        _turnNumber++;
-        _isBattleOver = _playerHand.Count == 0 && _enemyHand.Count == 0;
-        ShowStats();
-        ShowWhoseTurn();
-        _isTurnRunning = false;
+        if (outcome == SandboxOutcome.EnemyWins)
+        {
+            EndBattle("ENEMY WINS: YOU HAVE NO BLOCKS LEFT");
+            return;
+        }
+
+        if (outcome == SandboxOutcome.Draw)
+        {
+            EndBattle("DRAW: NOBODY HAS BLOCKS LEFT");
+            return;
+        }
+
+        string position = _board.DescribePosition(_positionText);
+        _timesPositionSeen.TryGetValue(position, out int timesSeen);
+        _timesPositionSeen[position] = timesSeen + 1;
+        if (timesSeen + 1 >= RepeatsForDraw)
+        {
+            EndBattle($"DRAW: THE BOARD WAS THE SAME {RepeatsForDraw} TIMES");
+        }
+        else if (_turnNumber > MostTurnsPerBattle)
+        {
+            EndBattle($"DRAW: {MostTurnsPerBattle} TURNS WITHOUT A WINNER");
+        }
+    }
+
+    private void EndBattle(string result)
+    {
+        _isBattleOver = true;
+        _resultText = result + ". PRESS RESET";
     }
 
     /// <summary>
@@ -341,8 +414,14 @@ public class SandboxScreen : MonoBehaviour
 
     private void ActivateBlock(SandboxBlock block)
     {
+        // Remember where the block stands now: the slashes are drawn from here.
+        Vector2Int attackerSquare = block.Position;
         _destroyedBlocks.Clear();
-        SandboxCombat.Activate(_board, block, _destroyedBlocks);
+        SandboxCombat.Activate(_board, block, _destroyedBlocks, _hitSquares);
+        foreach (Vector2Int hitSquare in _hitSquares)
+        {
+            SandboxSlashEffect.Play(_gridArea, PositionOfSquare(attackerSquare), PositionOfSquare(hitSquare), _cellSize);
+        }
 
         foreach (SandboxBlock destroyed in _destroyedBlocks)
         {
@@ -416,12 +495,12 @@ public class SandboxScreen : MonoBehaviour
         }
         _cells.Clear();
 
-        float cellSize = CalculateCellSize();
+        _cellSize = CalculateCellSize();
         for (int row = 0; row < _board.Rows; row++)
         {
             for (int column = 0; column < _board.Columns; column++)
             {
-                CreateCell(new Vector2Int(column, row), cellSize);
+                CreateCell(new Vector2Int(column, row));
             }
         }
 
@@ -437,18 +516,26 @@ public class SandboxScreen : MonoBehaviour
         return Mathf.Floor(Mathf.Min(area.x / _board.Columns, area.y / _board.Rows));
     }
 
-    private void CreateCell(Vector2Int gridPosition, float cellSize)
+    private void CreateCell(Vector2Int gridPosition)
     {
         SandboxCell cell = SandboxCell.Create(_gridArea, gridPosition, CellColor, _font, this);
         _cells.Add(cell);
 
-        // Positions are measured from the middle of the grid area, so the grid is centered.
-        // Row 0 is the top row, which is why y is flipped.
         RectTransform rect = (RectTransform)cell.transform;
-        float x = (gridPosition.x - (_board.Columns - 1) / 2f) * cellSize;
-        float y = ((_board.Rows - 1) / 2f - gridPosition.y) * cellSize;
-        rect.sizeDelta = new Vector2(cellSize - GapBetweenCells, cellSize - GapBetweenCells);
-        rect.anchoredPosition = new Vector2(x, y);
+        rect.sizeDelta = new Vector2(_cellSize - GapBetweenCells, _cellSize - GapBetweenCells);
+        rect.anchoredPosition = PositionOfSquare(gridPosition);
+    }
+
+    /// <summary>
+    /// Where the middle of a square is inside the grid area. Positions are measured
+    /// from the middle of the area, so the grid is centered. Row 0 is the top row,
+    /// which is why y is flipped.
+    /// </summary>
+    private Vector2 PositionOfSquare(Vector2Int gridPosition)
+    {
+        float x = (gridPosition.x - (_board.Columns - 1) / 2f) * _cellSize;
+        float y = ((_board.Rows - 1) / 2f - gridPosition.y) * _cellSize;
+        return new Vector2(x, y);
     }
 
     /// <summary>Makes every square on screen show what the board holds.</summary>
@@ -472,35 +559,14 @@ public class SandboxScreen : MonoBehaviour
     {
         if (_isBattleOver)
         {
-            _statusLabel.text = DescribeResult();
+            _statusLabel.text = _resultText;
             return;
         }
 
         _board.CollectPositions(_blockSquares, true);
-        if (_playerHand.Count == 0)
-        {
-            _statusLabel.text = HandEmptyText;
-        }
-        else
-        {
-            _statusLabel.text = _blockSquares.Count > 0 ? YourTurnText : BoardFullText;
-        }
+        _statusLabel.text = _blockSquares.Count > 0 ? YourTurnText : BoardFullText;
     }
 
-    private string DescribeResult()
-    {
-        int playerBlocks = _board.CountBlocks(SandboxSide.Player);
-        int enemyBlocks = _board.CountBlocks(SandboxSide.Enemy);
-        string count = $"{playerBlocks} OF YOUR BLOCKS LEFT, {enemyBlocks} ENEMY. PRESS RESET";
-
-        SandboxSide? winner = SandboxCombat.PickWinner(_board);
-        if (winner == null)
-        {
-            return $"DRAW: {count}";
-        }
-
-        return winner == SandboxSide.Player ? $"YOU WIN: {count}" : $"ENEMY WINS: {count}";
-    }
 
     private void ShowStats()
     {
@@ -526,7 +592,7 @@ public class SandboxScreen : MonoBehaviour
         string owner = block == null ? string.Empty : block.Side == SandboxSide.Enemy ? "ENEMY " : "YOUR ";
         string hp = block == null ? $"HP {kind.MaxHp}" : $"HP {block.Hp} / {kind.MaxHp}";
         string colorCode = ColorUtility.ToHtmlStringRGB(kind.Color);
-        _tooltipText.text = $"{owner}<color=#{colorCode}>{kind.Name}</color>\n{hp}\n\n{kind.RuleText}";
+        _tooltipText.text = $"<size={TooltipTitleFontSize}>{owner}<color=#{colorCode}>{kind.Name}</color></size>\n{hp}\n\n{kind.RuleText}";
 
         bool wasHidden = !_tooltip.gameObject.activeSelf;
         _tooltip.gameObject.SetActive(true);
