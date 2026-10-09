@@ -9,8 +9,8 @@ using UnityEngine.SceneManagement;
 /// TEMPORARY (sandbox test page, to be removed).
 /// A small battle test. Both sides start with a hand of random blocks. Each turn
 /// the player drags one block from their hand onto the grid, the enemy places one
-/// of its own (marked with an X), and then every square is activated in order,
-/// starting from a random block. Once the hands are empty the turns keep playing
+/// of its own (marked with an X), and then every square is activated once, either
+/// left to right from a random block or in a random order (the ORDER button). Once the hands are empty the turns keep playing
 /// by themselves until one side has no blocks left (the other side wins) or the
 /// board has looked exactly the same three times (a draw).
 /// Holding the mouse over a block for a moment shows a tooltip with its rules.
@@ -22,6 +22,8 @@ public class SandboxScreen : MonoBehaviour
     private const string HomeScreenSceneName = "HomeScreen";
     private const string YourTurnText = "YOUR TURN: DRAG A BLOCK ONTO THE GRID. HOVER A BLOCK FOR ITS RULES";
     private const string BoardFullText = "GRID IS FULL: PRESS PASS OR RESET";
+    private const string OrderLeftToRightText = "ORDER: LEFT TO RIGHT";
+    private const string OrderRandomText = "ORDER: RANDOM";
 
     // The battle is a draw when the board has looked exactly the same this many times.
     private const int RepeatsForDraw = 3;
@@ -65,6 +67,8 @@ public class SandboxScreen : MonoBehaviour
     [SerializeField] private UnityEngine.UI.Button _moreColumnsButton;
     [SerializeField] private UnityEngine.UI.Button _fewerRowsButton;
     [SerializeField] private UnityEngine.UI.Button _moreRowsButton;
+    [SerializeField] private UnityEngine.UI.Button _orderButton;
+    [SerializeField] private UnityEngine.UI.Text _orderLabel;
     [SerializeField] private UnityEngine.UI.Button _passButton;
     [SerializeField] private UnityEngine.UI.Button _resetButton;
     [SerializeField] private UnityEngine.UI.Button _backButton;
@@ -74,6 +78,7 @@ public class SandboxScreen : MonoBehaviour
     private readonly List<SandboxBlock> _destroyedBlocks = new List<SandboxBlock>();
     private readonly List<Vector2Int> _attackSquares = new List<Vector2Int>();
     private readonly List<Vector2Int> _hitSquares = new List<Vector2Int>();
+    private readonly List<int> _visitOrder = new List<int>();
     private readonly Dictionary<string, int> _timesPositionSeen = new Dictionary<string, int>();
     private readonly StringBuilder _positionText = new StringBuilder();
     private readonly List<Vector2Int> _otherEffectSquares = new List<Vector2Int>();
@@ -92,6 +97,10 @@ public class SandboxScreen : MonoBehaviour
 
     // True once a winner or a draw has been announced. Only RESET and BACK work then.
     private bool _isBattleOver;
+
+    // How squares are visited during activation. False: left to right, row by row,
+    // starting from a random block. True: every square once, in a shuffled order.
+    private bool _isRandomOrder;
     private string _resultText;
     private float _cellSize;
 
@@ -122,6 +131,7 @@ public class SandboxScreen : MonoBehaviour
         _moreColumnsButton.onClick.AddListener(() => ChangeGridSize(1, 0));
         _fewerRowsButton.onClick.AddListener(() => ChangeGridSize(0, -1));
         _moreRowsButton.onClick.AddListener(() => ChangeGridSize(0, 1));
+        _orderButton.onClick.AddListener(ToggleActivationOrder);
         _passButton.onClick.AddListener(PassTurn);
         _resetButton.onClick.AddListener(ResetBattle);
         _backButton.onClick.AddListener(ReturnToHomeScreen);
@@ -131,7 +141,23 @@ public class SandboxScreen : MonoBehaviour
     {
         HideTooltip();
         RebuildCells();
+        ShowActivationOrder();
         StartNewBattle();
+    }
+
+    /// <summary>
+    /// Switches between the two activation orders. It can be pressed at any time;
+    /// a turn that is already playing finishes in the order it started with.
+    /// </summary>
+    private void ToggleActivationOrder()
+    {
+        _isRandomOrder = !_isRandomOrder;
+        ShowActivationOrder();
+    }
+
+    private void ShowActivationOrder()
+    {
+        _orderLabel.text = _isRandomOrder ? OrderRandomText : OrderLeftToRightText;
     }
 
     /// <summary>Clears the grid and the counters and deals both sides a new random hand.</summary>
@@ -393,20 +419,21 @@ public class SandboxScreen : MonoBehaviour
     }
 
     /// <summary>
-    /// Starts at a random block, then visits every square once, in reading order,
-    /// wrapping from the last square back to the first. Each block that is reached
-    /// uses its ability. A block acts only once per turn, even if it gets pushed
-    /// onto a square that has not been visited yet.
+    /// Visits every square exactly once, in the order chosen with the ORDER button,
+    /// and lets each block it reaches use its ability. A block acts only once per
+    /// turn from being visited, even if it gets pushed onto a square that has not
+    /// been visited yet. Being triggered again by an orange block is extra and does
+    /// not count as its visit.
     /// </summary>
     private IEnumerator ActivateEverySquare()
     {
         _blocksThatActed.Clear();
         _hitsThisTurn = 0;
-        int startIndex = PickStartIndex();
+        BuildVisitOrder();
 
-        for (int step = 0; step < _cells.Count; step++)
+        for (int step = 0; step < _visitOrder.Count; step++)
         {
-            SandboxCell cell = _cells[(startIndex + step) % _cells.Count];
+            SandboxCell cell = _cells[_visitOrder[step]];
             SandboxBlock block = _board.GetBlock(cell.GridPosition);
             cell.SetHighlight(true, HighlightColor);
 
@@ -476,6 +503,37 @@ public class SandboxScreen : MonoBehaviour
         if (_destroyedBlocks.Count > 0)
         {
             GameAudio.Play(GameSound.BlockDestroyed);
+        }
+    }
+
+    /// <summary>
+    /// Fills the list of squares to visit this turn.
+    /// Left to right: start at a random block and go square by square in reading
+    /// order, wrapping from the last square back to the first.
+    /// Random: all squares, shuffled, so the order is different every turn.
+    /// </summary>
+    private void BuildVisitOrder()
+    {
+        _visitOrder.Clear();
+        int startIndex = _isRandomOrder ? 0 : PickStartIndex();
+        for (int step = 0; step < _cells.Count; step++)
+        {
+            _visitOrder.Add((startIndex + step) % _cells.Count);
+        }
+
+        if (!_isRandomOrder)
+        {
+            return;
+        }
+
+        // A standard shuffle: walk back from the end, swapping each entry with a
+        // randomly chosen one at or before it. Every order is equally likely.
+        for (int last = _visitOrder.Count - 1; last > 0; last--)
+        {
+            int other = _random.Next(last + 1);
+            int swapped = _visitOrder[last];
+            _visitOrder[last] = _visitOrder[other];
+            _visitOrder[other] = swapped;
         }
     }
 

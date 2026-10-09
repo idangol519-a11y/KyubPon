@@ -22,6 +22,7 @@ public static class SandboxSceneBuilder
 
     // The top of the page is kept thin so the grid gets as much height as possible.
     private const float HeadingOffsetFromTop = 24f;
+    private const float OrderButtonMargin = 32f;
     private const float ControlsOffsetFromTop = 88f;
     private const float StatsOffsetFromTop = 158f;
     private const float StatusOffsetFromTop = 202f;
@@ -41,6 +42,8 @@ public static class SandboxSceneBuilder
     private const float TooltipLineSpacing = 1.6f;
 
     private static readonly Vector2 TopCenter = new Vector2(0.5f, 1f);
+    private static readonly Vector2 TopRight = new Vector2(1f, 1f);
+    private static readonly Vector2 OrderButtonSize = new Vector2(520f, 48f);
     private static readonly Vector2 ScreenCenter = new Vector2(0.5f, 0.5f);
     private static readonly Vector2 BottomCenter = new Vector2(0.5f, 0f);
     private static readonly Vector2 HeadingSize = new Vector2(1800f, 56f);
@@ -117,8 +120,14 @@ public static class SandboxSceneBuilder
     /// <summary>The title, the battle numbers, and the status line that says what is happening.</summary>
     private static void BuildTopLines(MenuUiBuilder ui, Transform canvas, SerializedObject data)
     {
-        UnityEngine.UI.Text heading = ui.CreateLabel(canvas, "Heading", "SANDBOX - TEMPORARY TEST", HeadingFontSize);
+        UnityEngine.UI.Text heading = ui.CreateLabel(canvas, "Heading", "SANDBOX - TEST", HeadingFontSize);
         SceneBuilderTools.PlaceAtEdge(heading.rectTransform, TopCenter, new Vector2(0f, -HeadingOffsetFromTop), HeadingSize);
+
+        // In the top-right corner: switches the order in which squares are activated.
+        UnityEngine.UI.Button order = ui.CreateTextButton(canvas, "OrderButton", "ORDER: LEFT TO RIGHT", NoteFontSize);
+        SceneBuilderTools.PlaceAtEdge((RectTransform)order.transform, TopRight, new Vector2(-OrderButtonMargin, -OrderButtonMargin), OrderButtonSize);
+        SceneBuilderTools.SetReference(data, "_orderButton", order);
+        SceneBuilderTools.SetReference(data, "_orderLabel", order.GetComponent<UnityEngine.UI.Text>());
 
         UnityEngine.UI.Text stats = ui.CreateLabel(canvas, "StatsLabel", "TURN 1", NoteFontSize);
         SceneBuilderTools.PlaceAtEdge(stats.rectTransform, TopCenter, new Vector2(0f, -StatsOffsetFromTop), LineSize);

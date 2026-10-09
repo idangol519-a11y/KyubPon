@@ -6,6 +6,17 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-10-09
+
+### Added
+- Sandbox: an ORDER button in the top-right corner that switches how squares are activated each turn.
+  - **LEFT TO RIGHT** (the default, as before): start at a random block and go square by square, row by row.
+  - **RANDOM**: every square is visited exactly once in a shuffled order, different every turn.
+- In both orders a block acts once per turn from being visited. Being triggered again by an orange block is extra and does not use up its visit.
+
+### Changed
+- Sandbox: the page title is now "SANDBOX - TEST" to make room for the ORDER button.
+
 ## [0.13.0] - 2026-10-09
 
 ### Added
