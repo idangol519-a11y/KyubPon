@@ -36,6 +36,10 @@ public class SandboxScreen : MonoBehaviour
     private static readonly Color CellColor = new Color(0.17f, 0.17f, 0.24f);
     private static readonly Color HighlightColor = new Color(0.55f, 0.55f, 0.70f);
 
+    // See-through tints for a hovered block's area of effect.
+    private static readonly Color AttackAreaColor = new Color(0.95f, 0.15f, 0.15f, 0.45f);
+    private static readonly Color OtherAreaColor = new Color(0.20f, 0.50f, 1.00f, 0.45f);
+
     [SerializeField] private RectTransform _gridArea;
     [SerializeField] private RectTransform _dragLayer;
     [SerializeField] private Transform _palette;
@@ -57,6 +61,8 @@ public class SandboxScreen : MonoBehaviour
     private readonly List<SandboxCell> _cells = new List<SandboxCell>();
     private readonly List<Vector2Int> _blockSquares = new List<Vector2Int>();
     private readonly List<SandboxBlock> _destroyedBlocks = new List<SandboxBlock>();
+    private readonly List<Vector2Int> _attackSquares = new List<Vector2Int>();
+    private readonly List<Vector2Int> _otherEffectSquares = new List<Vector2Int>();
     private readonly HashSet<SandboxBlock> _blocksThatActed = new HashSet<SandboxBlock>();
     private readonly System.Random _random = new System.Random();
     private readonly WaitForSeconds _enemyThinkWait = new WaitForSeconds(EnemyThinkSeconds);
@@ -131,6 +137,9 @@ public class SandboxScreen : MonoBehaviour
         _hoveredCell = cell;
         _hoverStartTime = Time.unscaledTime;
         _isHovering = true;
+
+        // The area of effect shows at once; only the rules tooltip waits.
+        ShowAreaOfEffect();
     }
 
     /// <summary>
@@ -162,6 +171,37 @@ public class SandboxScreen : MonoBehaviour
         _hoveredPaletteKind = null;
         _hoveredCell = null;
         HideTooltip();
+        ShowAreaOfEffect();
+    }
+
+    /// <summary>
+    /// Tints the squares that the block under the mouse can affect: red where it
+    /// attacks, blue for any other effect. With no placed block under the mouse,
+    /// all tints are simply removed.
+    /// </summary>
+    private void ShowAreaOfEffect()
+    {
+        foreach (SandboxCell cell in _cells)
+        {
+            cell.HideAreaTint();
+        }
+
+        SandboxBlock block = _hoveredCell != null ? _board.GetBlock(_hoveredCell.GridPosition) : null;
+        if (block == null)
+        {
+            return;
+        }
+
+        SandboxCombat.CollectAreaOfEffect(_board, block, _attackSquares, _otherEffectSquares);
+        foreach (Vector2Int square in _attackSquares)
+        {
+            _cells[IndexOf(square)].ShowAreaTint(AttackAreaColor);
+        }
+
+        foreach (Vector2Int square in _otherEffectSquares)
+        {
+            _cells[IndexOf(square)].ShowAreaTint(OtherAreaColor);
+        }
     }
 
     /// <summary>
@@ -394,6 +434,7 @@ public class SandboxScreen : MonoBehaviour
         }
 
         // The block under the mouse may have lost HP, moved, or been destroyed.
+        ShowAreaOfEffect();
         if (_tooltip.gameObject.activeSelf)
         {
             ShowTooltip();
