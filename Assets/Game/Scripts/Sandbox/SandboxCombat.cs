@@ -50,6 +50,61 @@ public static class SandboxCombat
         }
     }
 
+    /// <summary>
+    /// Lists the squares a block's ability can reach, whether or not anything is
+    /// standing on them. "Attack squares" are where it hurts or pushes opposing
+    /// blocks. "Other squares" are everything else it affects: where a heal lands,
+    /// or where a pushed block would end up. Squares off the board are left out.
+    /// Keep this in step with the ability methods below.
+    /// </summary>
+    public static void CollectAreaOfEffect(SandboxBoard board, SandboxBlock block,
+        List<Vector2Int> attackSquares, List<Vector2Int> otherSquares)
+    {
+        attackSquares.Clear();
+        otherSquares.Clear();
+
+        switch (block.Kind.Ability)
+        {
+            case SandboxAbility.Strike:
+                AddNeighbours(board, block.Position, 1, attackSquares);
+                break;
+            case SandboxAbility.Push:
+                AddNeighbours(board, block.Position, 1, attackSquares);
+                AddNeighbours(board, block.Position, 2, otherSquares);
+                break;
+            case SandboxAbility.Heal:
+                AddNeighbours(board, block.Position, 1, otherSquares);
+                break;
+            case SandboxAbility.RowShot:
+                AddRow(board, block.Position, attackSquares);
+                break;
+        }
+    }
+
+    /// <summary>Adds the squares that are a given number of steps away in each of the four directions.</summary>
+    private static void AddNeighbours(SandboxBoard board, Vector2Int center, int distance, List<Vector2Int> squares)
+    {
+        foreach (Vector2Int direction in Directions)
+        {
+            Vector2Int square = center + direction * distance;
+            if (board.IsInside(square))
+            {
+                squares.Add(square);
+            }
+        }
+    }
+
+    private static void AddRow(SandboxBoard board, Vector2Int center, List<Vector2Int> squares)
+    {
+        for (int column = 0; column < board.Columns; column++)
+        {
+            if (column != center.x)
+            {
+                squares.Add(new Vector2Int(column, center.y));
+            }
+        }
+    }
+
     private static void StrikeNeighbours(SandboxBoard board, SandboxBlock block, List<SandboxBlock> destroyed)
     {
         foreach (Vector2Int direction in Directions)

@@ -26,6 +26,7 @@ public class SandboxCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
     private UnityEngine.UI.Image _blockImage;
     private UnityEngine.UI.Text _enemyMark;
     private UnityEngine.UI.Text _hpText;
+    private UnityEngine.UI.Image _areaTint;
     private Color _normalColor;
     private SandboxScreen _screen;
 
@@ -47,6 +48,7 @@ public class SandboxCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         cell._squareImage = cellObject.AddComponent<UnityEngine.UI.Image>();
         cell._squareImage.color = color;
         cell.CreateBlockPicture(font);
+        cell.CreateAreaTint();
         cell.Show(null);
         return cell;
     }
@@ -69,6 +71,22 @@ public class SandboxCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         _squareImage.color = isOn ? highlightColor : _normalColor;
     }
 
+    /// <summary>
+    /// Covers the square with a see-through color, used to show a block's area of effect.
+    /// The tint is drawn over the block, so it also shows on squares that are occupied.
+    /// </summary>
+    public void ShowAreaTint(Color color)
+    {
+        _areaTint.color = color;
+        _areaTint.enabled = true;
+    }
+
+    /// <summary>Removes the area-of-effect tint.</summary>
+    public void HideAreaTint()
+    {
+        _areaTint.enabled = false;
+    }
+
     /// <summary>Draws the given block on this square. Pass null for an empty square.</summary>
     public void Show(SandboxBlock block)
     {
@@ -82,6 +100,14 @@ public class SandboxCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
         block.Kind.ApplyLook(_blockImage, isEnemy ? EnemyDarkening : 0f);
         _enemyMark.enabled = isEnemy;
         _hpText.text = block.Hp.ToString();
+    }
+
+    private void CreateAreaTint()
+    {
+        // Created after the block picture, so it is drawn on top of it.
+        _areaTint = CreateChild(transform, "AreaTint", Vector2.zero, Vector2.one).gameObject.AddComponent<UnityEngine.UI.Image>();
+        _areaTint.raycastTarget = false;
+        _areaTint.enabled = false;
     }
 
     private void CreateBlockPicture(Font font)

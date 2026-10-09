@@ -6,6 +6,15 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-09
+
+### Added
+- Sandbox: area of effect. Moving the mouse onto a placed block, yours or the enemy's, tints the squares its ability reaches. Red marks squares it attacks; blue marks any other effect. It appears at once, without the one-second wait of the rules tooltip.
+  - Red block: the four squares next to it are red.
+  - Blue block: the four squares next to it are red, and the squares a pushed block would land on are blue.
+  - Green block: the four squares next to it are blue.
+  - Yellow block: the rest of its row is red.
+
 ## [0.8.0] - 2026-10-07
 
 ### Added

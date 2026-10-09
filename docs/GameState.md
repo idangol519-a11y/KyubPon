@@ -1,6 +1,6 @@
 # Game State
 
-Current version: **0.8.0**
+Current version: **0.9.0**
 
 ## Built
 - Unity 2D project setup (Force Text serialization, Visible Meta Files, 2D editor mode).
@@ -26,6 +26,7 @@ A test page for trying out a grid and drag-and-drop. It is not part of the game 
 - Opened by the SANDBOX button on the Home screen. Grid size is changed with the on-screen arrows; the limits (minimum 5 by 4, maximum 12 by 8) are constants in `SandboxGridSize.cs`.
 - Battle test: each turn the player drags one block onto an empty square, the enemy places one (drawn with an X), then every square activates in reading order starting from a random block. Blocks have HP; the panel on the right counts destroyed blocks on both sides.
 - Each block's rules appear in a tooltip after the mouse rests on it for one second (palette or grid). The tooltip text is generated from the block list.
+- Moving the mouse onto a placed block tints its area of effect: red for squares it attacks, blue for other effects (heal targets, and where a pushed block would land). The squares come from `SandboxCombat.CollectAreaOfEffect`, which must be kept in step with the ability code beside it.
 - Block rules: red -2 HP to each enemy next to it; blue pushes each enemy next to it one square (off the edge = destroyed, blocked = -1 HP); green +2 HP to each friend next to it; yellow -1 HP to every enemy in its row. The numbers are constants in `SandboxCombat.cs` and the block list is in `SandboxCubeKind.cs`; the rules note on the page is generated from them.
 - The rules are plain C# (`SandboxBoard`, `SandboxBlock`, `SandboxCombat`, `SandboxEnemy`), separate from the screen code, so they can be a starting point for the real battle later.
 - Not done because the page is temporary: no automated tests, the random start is not seeded, block data is in C# instead of JSON, and there is no win or lose state.
