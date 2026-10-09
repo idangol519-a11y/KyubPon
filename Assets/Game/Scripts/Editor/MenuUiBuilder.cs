@@ -101,6 +101,7 @@ public class MenuUiBuilder
         UnityEngine.UI.Button button = text.gameObject.AddComponent<UnityEngine.UI.Button>();
         button.targetGraphic = text;
         button.colors = CreateColors();
+        text.gameObject.AddComponent<ButtonSound>();
         return button;
     }
 

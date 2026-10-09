@@ -1,6 +1,6 @@
 # Game State
 
-Current version: **0.11.0**
+Current version: **0.12.0**
 
 ## Built
 - Unity 2D project setup (Force Text serialization, Visible Meta Files, 2D editor mode).
@@ -15,6 +15,14 @@ Current version: **0.11.0**
 - Version tooling: `tools/Set-GameVersion.ps1` keeps the version identical in every file (see `docs/Releasing.md`).
 
 - Git: one long-lived branch, `main`. Feature branches are merged into it and deleted.
+
+## Audio
+- `GameAudio` (in `Scripts/Core/`) is the sound player. It creates itself before the first scene loads, loops the soundtrack, and plays effects by name: `GameAudio.Play(GameSound.ButtonClick)`.
+- Each name in the `GameSound` list is also a file name. Sound files are loaded from `Assets/Game/Audio/TemporaryDemo/Resources/DemoAudio/` (for example `ButtonClick.wav`, `Music.mp3`, and `HitChain1.wav` to `HitChain10.wav`).
+- `ButtonSound` gives every menu button its hover and click sounds; the scene builders add it.
+- Three volumes are saved in `GameSettings`: master (applied to the listener), music, and sound effects.
+- **The sound files are temporary and are not in Git.** They are third-party files with unconfirmed licenses (see `docs/Credits.md`), so `Assets/Game/Audio/` is ignored by Git and exists only on Idan's PC. A missing file is silent and logs a warning. To remove the temporary audio, delete that folder; the code keeps working.
+- Not done yet: the Audio Mixer and logarithmic volume scale described in CLAUDE.md. Volumes are plain 0 to 1 values on the audio sources.
 
 ## Block skins
 - The four block skins live in `Assets/StreamingAssets/Content/Blocks/<Name>/<Name>.png` (RedBlock, BlueBlock, GreenBlock, YellowBlock). Size: 64 by 64 pixels, PNG, transparency allowed. Replace a file to change a skin.
@@ -51,4 +59,4 @@ To remove it:
 - No automated tests yet (there is no game logic to test so far).
 
 ## Global services
-- None yet.
+- `GameAudio`: the one sound player for music and effects. Created automatically when the game starts and kept across scenes.

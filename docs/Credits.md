@@ -23,3 +23,5 @@ Used for local testing only. Kept out of Git. Must be replaced or licensed befor
 | Asset | Source | License | Files |
 |---|---|---|---|
 | Slash attack effect (9 frames) | GIF supplied by Idan: `demon-awakening-effect-slash-3.gif`. Original author unknown; the name suggests it comes from another game. | Not confirmed | `Assets/StreamingAssets/Content/Effects/Slash/` (on Idan's PC only) |
+| Sound effects (26 files) | "400 Sounds Pack" supplied by Idan. Author and source not recorded. | Not confirmed | `Assets/Game/Audio/TemporaryDemo/` (on Idan's PC only) |
+| Soundtrack | MP3 supplied by Idan: "Balatro OST in the style of Masayoshi Takanaka". Author not recorded; it is someone else's music. | Not confirmed | `Assets/Game/Audio/TemporaryDemo/Resources/DemoAudio/Music.mp3` (on Idan's PC only) |

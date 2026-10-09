@@ -94,6 +94,9 @@ public class SandboxScreen : MonoBehaviour
     private bool _isBattleOver;
     private string _resultText;
     private float _cellSize;
+
+    // How many hits have landed this turn. Each one plays a higher "hit chain" sound.
+    private int _hitsThisTurn;
     private int _turnNumber = 1;
     private int _enemyBlocksDestroyed;
     private int _playerBlocksDestroyed;
@@ -147,6 +150,7 @@ public class SandboxScreen : MonoBehaviour
         DrawHand();
         ShowStats();
         ShowWhoseTurn();
+        GameAudio.Play(GameSound.DealHands);
     }
 
     private void Update()
@@ -251,10 +255,12 @@ public class SandboxScreen : MonoBehaviour
     {
         if (_isTurnRunning || _isBattleOver || _board.GetBlock(position) != null || !_playerHand.Remove(kind))
         {
+            GameAudio.Play(GameSound.InvalidMove);
             return;
         }
 
         _board.Place(new SandboxBlock(kind, SandboxSide.Player), position);
+        GameAudio.Play(GameSound.BlockPlace);
         DrawBoard();
         DrawHand();
         StartCoroutine(RunRestOfTurn());
@@ -332,6 +338,10 @@ public class SandboxScreen : MonoBehaviour
         yield return _enemyThinkWait;
         SandboxBlock enemyBlock = _enemy.PlaceBlock(_board, _enemyHand);
         _statusLabel.text = enemyBlock != null ? $"ENEMY PLACES {enemyBlock.Kind.Name}" : "ENEMY HAS NO ROOM TO PLACE";
+        if (enemyBlock != null)
+        {
+            GameAudio.Play(GameSound.EnemyPlace);
+        }
         DrawBoard();
         ShowStats();
         yield return _enemyThinkWait;
@@ -346,19 +356,19 @@ public class SandboxScreen : MonoBehaviour
         SandboxOutcome outcome = SandboxCombat.GetOutcome(_board, _playerHand.Count, _enemyHand.Count);
         if (outcome == SandboxOutcome.PlayerWins)
         {
-            EndBattle("YOU WIN: THE ENEMY HAS NO BLOCKS LEFT");
+            EndBattle("YOU WIN: THE ENEMY HAS NO BLOCKS LEFT", GameSound.Win);
             return;
         }
 
         if (outcome == SandboxOutcome.EnemyWins)
         {
-            EndBattle("ENEMY WINS: YOU HAVE NO BLOCKS LEFT");
+            EndBattle("ENEMY WINS: YOU HAVE NO BLOCKS LEFT", GameSound.Lose);
             return;
         }
 
         if (outcome == SandboxOutcome.Draw)
         {
-            EndBattle("DRAW: NOBODY HAS BLOCKS LEFT");
+            EndBattle("DRAW: NOBODY HAS BLOCKS LEFT", GameSound.Draw);
             return;
         }
 
@@ -367,18 +377,19 @@ public class SandboxScreen : MonoBehaviour
         _timesPositionSeen[position] = timesSeen + 1;
         if (timesSeen + 1 >= RepeatsForDraw)
         {
-            EndBattle($"DRAW: THE BOARD WAS THE SAME {RepeatsForDraw} TIMES");
+            EndBattle($"DRAW: THE BOARD WAS THE SAME {RepeatsForDraw} TIMES", GameSound.Draw);
         }
         else if (_turnNumber > MostTurnsPerBattle)
         {
-            EndBattle($"DRAW: {MostTurnsPerBattle} TURNS WITHOUT A WINNER");
+            EndBattle($"DRAW: {MostTurnsPerBattle} TURNS WITHOUT A WINNER", GameSound.Draw);
         }
     }
 
-    private void EndBattle(string result)
+    private void EndBattle(string result, GameSound sound)
     {
         _isBattleOver = true;
         _resultText = result + ". PRESS RESET";
+        GameAudio.Play(sound);
     }
 
     /// <summary>
@@ -390,6 +401,7 @@ public class SandboxScreen : MonoBehaviour
     private IEnumerator ActivateEverySquare()
     {
         _blocksThatActed.Clear();
+        _hitsThisTurn = 0;
         int startIndex = PickStartIndex();
 
         for (int step = 0; step < _cells.Count; step++)
@@ -417,11 +429,13 @@ public class SandboxScreen : MonoBehaviour
         // Remember where the block stands now: the slashes are drawn from here.
         Vector2Int attackerSquare = block.Position;
         _destroyedBlocks.Clear();
-        SandboxCombat.Activate(_board, block, _destroyedBlocks, _hitSquares);
+        bool didSomething = SandboxCombat.Activate(_board, block, _destroyedBlocks, _hitSquares);
         foreach (Vector2Int hitSquare in _hitSquares)
         {
             SandboxSlashEffect.Play(_gridArea, PositionOfSquare(attackerSquare), PositionOfSquare(hitSquare), _cellSize);
         }
+
+        PlayActivationSounds(block, didSomething);
 
         foreach (SandboxBlock destroyed in _destroyedBlocks)
         {
@@ -439,6 +453,30 @@ public class SandboxScreen : MonoBehaviour
         _statusLabel.text = $"{owner} {block.Kind.Name} {block.Kind.ActionWord}";
         DrawBoard();
         ShowStats();
+    }
+
+    /// <summary>
+    /// Plays the block's own sound if its ability did anything, a rising note for
+    /// each hit (so a turn full of hits climbs in pitch), and a bang if a block died.
+    /// A block whose ability reached nothing stays silent.
+    /// </summary>
+    private void PlayActivationSounds(SandboxBlock block, bool didSomething)
+    {
+        if (didSomething)
+        {
+            GameAudio.Play(block.Kind.Sound);
+        }
+
+        if (_hitSquares.Count > 0)
+        {
+            _hitsThisTurn += _hitSquares.Count;
+            GameAudio.PlayHitChain(_hitsThisTurn);
+        }
+
+        if (_destroyedBlocks.Count > 0)
+        {
+            GameAudio.Play(GameSound.BlockDestroyed);
+        }
     }
 
     /// <summary>

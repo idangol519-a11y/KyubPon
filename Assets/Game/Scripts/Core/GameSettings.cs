@@ -1,20 +1,32 @@
 using UnityEngine;
 
 /// <summary>
-/// The player's settings (volume, fullscreen, resolution).
+/// The player's settings (volumes, fullscreen, resolution).
 /// Values are stored with PlayerPrefs, which Unity saves on the player's computer,
 /// so they are remembered the next time the game starts.
 /// </summary>
 public class GameSettings
 {
     private const string MasterVolumeKey = "settings.masterVolume";
+    private const string MusicVolumeKey = "settings.musicVolume";
+    private const string SoundVolumeKey = "settings.soundVolume";
     private const string FullscreenKey = "settings.fullscreen";
     private const string ResolutionWidthKey = "settings.resolutionWidth";
     private const string ResolutionHeightKey = "settings.resolutionHeight";
     private const float DefaultMasterVolume = 1f;
 
-    /// <summary>Overall game volume, from 0 (silent) to 1 (full).</summary>
+    // Music starts quieter than the effects so it sits in the background.
+    private const float DefaultMusicVolume = 0.5f;
+    private const float DefaultSoundVolume = 1f;
+
+    /// <summary>Overall game volume, from 0 (silent) to 1 (full). It scales everything the player hears.</summary>
     public float MasterVolume { get; set; }
+
+    /// <summary>Soundtrack volume, from 0 (silent) to 1 (full).</summary>
+    public float MusicVolume { get; set; }
+
+    /// <summary>Sound-effect volume, from 0 (silent) to 1 (full).</summary>
+    public float SoundVolume { get; set; }
 
     /// <summary>True when the game fills the whole screen, false when it runs in a window.</summary>
     public bool Fullscreen { get; set; }
@@ -34,6 +46,8 @@ public class GameSettings
         return new GameSettings
         {
             MasterVolume = Mathf.Clamp01(PlayerPrefs.GetFloat(MasterVolumeKey, DefaultMasterVolume)),
+            MusicVolume = Mathf.Clamp01(PlayerPrefs.GetFloat(MusicVolumeKey, DefaultMusicVolume)),
+            SoundVolume = Mathf.Clamp01(PlayerPrefs.GetFloat(SoundVolumeKey, DefaultSoundVolume)),
             Fullscreen = PlayerPrefs.GetInt(FullscreenKey, Screen.fullScreen ? 1 : 0) == 1,
             ResolutionWidth = PlayerPrefs.GetInt(ResolutionWidthKey, Screen.width),
             ResolutionHeight = PlayerPrefs.GetInt(ResolutionHeightKey, Screen.height)
@@ -44,6 +58,8 @@ public class GameSettings
     public void Save()
     {
         PlayerPrefs.SetFloat(MasterVolumeKey, MasterVolume);
+        PlayerPrefs.SetFloat(MusicVolumeKey, MusicVolume);
+        PlayerPrefs.SetFloat(SoundVolumeKey, SoundVolume);
         PlayerPrefs.SetInt(FullscreenKey, Fullscreen ? 1 : 0);
         PlayerPrefs.SetInt(ResolutionWidthKey, ResolutionWidth);
         PlayerPrefs.SetInt(ResolutionHeightKey, ResolutionHeight);
@@ -57,10 +73,14 @@ public class GameSettings
         ApplyDisplay();
     }
 
-    /// <summary>Sets the volume of everything the player hears.</summary>
+    /// <summary>
+    /// Sets the three volumes. The master volume is applied to the "listener"
+    /// (the game's ears), so it scales music and effects together.
+    /// </summary>
     public void ApplyAudio()
     {
         AudioListener.volume = MasterVolume;
+        GameAudio.SetVolumes(MusicVolume, SoundVolume);
     }
 
     /// <summary>

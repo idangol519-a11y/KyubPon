@@ -51,6 +51,7 @@ public class SandboxPaletteCube : MonoBehaviour, IBeginDragHandler, IDragHandler
     public void OnBeginDrag(PointerEventData eventData)
     {
         _screen.SetDraggingBlock(true);
+        GameAudio.Play(GameSound.BlockPickUp);
 
         GameObject copy = new GameObject("Dragged Block", typeof(RectTransform));
         _draggedCopy = (RectTransform)copy.transform;

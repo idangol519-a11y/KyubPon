@@ -42,3 +42,7 @@ crashlytics-build.properties
 # Attack effect frames made from a GIF whose license is not confirmed. Kept on this PC only.
 /Assets/StreamingAssets/Content/Effects/
 /Assets/StreamingAssets/Content/Effects.meta
+
+# Temporary demo sounds and soundtrack. Third-party files whose license is not confirmed. Kept on this PC only.
+/Assets/Game/Audio/
+/Assets/Game/Audio.meta
