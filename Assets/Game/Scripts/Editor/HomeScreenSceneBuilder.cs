@@ -89,8 +89,6 @@ public static class HomeScreenSceneBuilder
         SceneBuilderTools.SetReference(homeScreenData, "_newGameButton", ui.CreateTextButton(menu, "NewGameButton", "NEW GAME", ButtonFontSize));
         SceneBuilderTools.SetReference(homeScreenData, "_continueButton", ui.CreateTextButton(menu, "ContinueButton", "CONTINUE", ButtonFontSize));
         SceneBuilderTools.SetReference(homeScreenData, "_settingsButton", ui.CreateTextButton(menu, "SettingsButton", "SETTINGS", ButtonFontSize));
-        // TEMPORARY: the Sandbox button is a test feature and will be removed.
-        SceneBuilderTools.SetReference(homeScreenData, "_sandboxButton", ui.CreateTextButton(menu, "SandboxButton", "SANDBOX", ButtonFontSize));
         SceneBuilderTools.SetReference(homeScreenData, "_quitButton", ui.CreateTextButton(menu, "QuitButton", "QUIT", ButtonFontSize));
     }
 

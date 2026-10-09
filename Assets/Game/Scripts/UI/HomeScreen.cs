@@ -11,15 +11,13 @@ using UnityEngine.SceneManagement;
 public class HomeScreen : MonoBehaviour
 {
     private const string GameTitle = "KyubPon";
-    private const string SandboxSceneName = "Sandbox";
+    private const string BattleSceneName = "Battle";
 
     [SerializeField] private UnityEngine.UI.Button _newGameButton;
     [SerializeField] private UnityEngine.UI.Button _continueButton;
     [SerializeField] private UnityEngine.UI.Button _settingsButton;
     [SerializeField] private UnityEngine.UI.Button _quitButton;
 
-    // TEMPORARY: opens the sandbox test page. Remove with the Sandbox scripts.
-    [SerializeField] private UnityEngine.UI.Button _sandboxButton;
     [SerializeField] private UnityEngine.UI.Text _versionLabel;
     [SerializeField] private GameObject _mainMenu;
     [SerializeField] private SettingsPanel _settingsPanel;
@@ -31,10 +29,13 @@ public class HomeScreen : MonoBehaviour
         _settings = GameSettings.Load();
         _settings.Apply();
 
-        DisableUnfinishedButtons();
+        _newGameButton.onClick.AddListener(StartNewGame);
+        _continueButton.onClick.AddListener(ContinueGame);
+
+        // Continue only works when there is a saved battle to go back to.
+        _continueButton.interactable = BattleSave.Exists;
         _settingsButton.onClick.AddListener(OpenSettings);
         _quitButton.onClick.AddListener(QuitGame);
-        _sandboxButton.onClick.AddListener(OpenSandbox);
         _settingsPanel.Closed += ShowMainMenu;
 
         // Application.version reads "Version" from Project Settings > Player,
@@ -49,13 +50,19 @@ public class HomeScreen : MonoBehaviour
     }
 
     /// <summary>
-    /// New Game and Continue are shown so the menu already has its final shape,
-    /// but they cannot be pressed until runs and saved games exist.
+    /// Throws away any saved battle and opens the battle screen, which then
+    /// deals a fresh battle because it finds no save.
     /// </summary>
-    private void DisableUnfinishedButtons()
+    private void StartNewGame()
     {
-        _newGameButton.interactable = false;
-        _continueButton.interactable = false;
+        BattleSave.Delete();
+        SceneManager.LoadScene(BattleSceneName);
+    }
+
+    /// <summary>Opens the battle screen, which loads the saved battle it finds.</summary>
+    private void ContinueGame()
+    {
+        SceneManager.LoadScene(BattleSceneName);
     }
 
     private void OpenSettings()
@@ -64,17 +71,14 @@ public class HomeScreen : MonoBehaviour
         _settingsPanel.Open(_settings);
     }
 
-    private void OpenSandbox()
-    {
-        SceneManager.LoadScene(SandboxSceneName);
-    }
-
     private void ShowMainMenu()
     {
         _mainMenu.SetActive(true);
 
         // Selecting a button lets keyboard and controller players move through the menu.
-        EventSystem.current.SetSelectedGameObject(_settingsButton.gameObject);
+        // Start on Continue when there is a battle to continue, otherwise on New Game.
+        UnityEngine.UI.Button firstButton = _continueButton.interactable ? _continueButton : _newGameButton;
+        EventSystem.current.SetSelectedGameObject(firstButton.gameObject);
     }
 
     private void QuitGame()

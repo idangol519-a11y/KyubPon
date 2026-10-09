@@ -16,8 +16,8 @@ public static class SceneBuilderTools
     /// <summary>The Home screen with the main menu and settings.</summary>
     public const string HomeScreenScenePath = "Assets/Game/Scenes/HomeScreen.unity";
 
-    /// <summary>TEMPORARY: the sandbox test page. Remove together with the Sandbox scripts.</summary>
-    public const string SandboxScenePath = "Assets/Game/Scenes/Sandbox.unity";
+    /// <summary>The battle screen, opened by New Game and Continue.</summary>
+    public const string BattleScenePath = "Assets/Game/Scenes/Battle.unity";
 
     private const string FontPath = "Assets/Game/Fonts/PressStart2P/PressStart2P-Regular.ttf";
     private const string FallbackFontName = "LegacyRuntime.ttf";
@@ -37,7 +37,7 @@ public static class SceneBuilderTools
         {
             new EditorBuildSettingsScene(DropScreenScenePath, true),
             new EditorBuildSettingsScene(HomeScreenScenePath, true),
-            new EditorBuildSettingsScene(SandboxScenePath, true)
+            new EditorBuildSettingsScene(BattleScenePath, true)
         };
         AssetDatabase.SaveAssets();
     }

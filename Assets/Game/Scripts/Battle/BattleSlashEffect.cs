@@ -2,11 +2,10 @@ using System.Collections;
 using UnityEngine;
 
 /// <summary>
-/// TEMPORARY (sandbox test page, to be removed).
 /// A short slash animation drawn between an attacking block and the block it hits.
 /// It plays its frames once and then removes itself.
 /// </summary>
-public class SandboxSlashEffect : MonoBehaviour
+public class BattleSlashEffect : MonoBehaviour
 {
     private const string EffectName = "Slash";
     private const float SecondsPerFrame = 0.07f;
@@ -36,7 +35,7 @@ public class SandboxSlashEffect : MonoBehaviour
         rect.anchoredPosition = (from + to) / 2f;
         rect.localRotation = Quaternion.Euler(0f, 0f, Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg);
 
-        SandboxSlashEffect effect = effectObject.AddComponent<SandboxSlashEffect>();
+        BattleSlashEffect effect = effectObject.AddComponent<BattleSlashEffect>();
         effect._image = effectObject.AddComponent<UnityEngine.UI.Image>();
         effect._image.raycastTarget = false;
 

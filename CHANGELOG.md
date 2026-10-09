@@ -6,6 +6,21 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-10-09
+
+### Added
+- **New Game** and **Continue** on the Home screen now work. New Game starts a fresh battle; Continue goes back to the saved one. Continue is greyed out until there is a save.
+- Autosave: the battle is saved after every turn, and "AUTOSAVING..." shows in the top-left corner for a moment each time. It is also saved when a battle is dealt, when the grid size changes, and when the ORDER button is pressed between turns.
+- Unity's Pipeline package (`com.unity.pipeline` 0.8.0-exp.1, experimental) in `Packages/manifest.json`. It lets the Unity command-line tool drive the open Editor (rebuild scenes, enter Play mode, take screenshots). It is an Editor tool and adds nothing to the game itself.
+- `BattleSave` writes the save to `BattleSave.json` in the game's data folder. A missing, damaged, or outdated file is logged and the game deals a fresh battle instead.
+
+### Changed
+- The test page is now the game's battle screen. Its title reads "BATTLE", and its scripts, folder, and scene were renamed from `Sandbox...` to `Battle...` (for example `SandboxCombat` is now `BattleCombat`). The files kept their Unity ids, so nothing in the scenes lost its link.
+- The Home menu starts on Continue when there is a save, otherwise on New Game.
+
+### Removed
+- The SANDBOX button on the Home screen. The battle is reached through New Game and Continue.
+
 ## [0.15.0] - 2026-10-09
 
 ### Changed

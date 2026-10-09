@@ -5,14 +5,13 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 
 /// <summary>
-/// TEMPORARY (sandbox test page, to be removed).
-/// Builds the Sandbox scene through code. It runs once automatically when the scene
-/// file is missing, and can be run again from the menu: KyubPon > Rebuild Sandbox Scene.
+/// Builds the Battle scene through code. It runs once automatically when the scene
+/// file is missing, and can be run again from the menu: KyubPon > Rebuild Battle Scene.
 /// </summary>
 [InitializeOnLoad]
-public static class SandboxSceneBuilder
+public static class BattleSceneBuilder
 {
-    private const string ScenePath = SceneBuilderTools.SandboxScenePath;
+    private const string ScenePath = SceneBuilderTools.BattleScenePath;
 
     // Press Start 2P is drawn on an 8-pixel grid, so sizes that are multiples of 8 stay sharp.
     private const int HeadingFontSize = 48;
@@ -22,7 +21,7 @@ public static class SandboxSceneBuilder
 
     // The top of the page is kept thin so the grid gets as much height as possible.
     private const float HeadingOffsetFromTop = 24f;
-    private const float OrderButtonMargin = 32f;
+    private const float CornerMargin = 32f;
     private const float ControlsOffsetFromTop = 88f;
     private const float StatsOffsetFromTop = 158f;
     private const float StatusOffsetFromTop = 202f;
@@ -42,7 +41,9 @@ public static class SandboxSceneBuilder
     private const float TooltipLineSpacing = 1.6f;
 
     private static readonly Vector2 TopCenter = new Vector2(0.5f, 1f);
+    private static readonly Vector2 TopLeft = new Vector2(0f, 1f);
     private static readonly Vector2 TopRight = new Vector2(1f, 1f);
+    private static readonly Vector2 AutosaveLabelSize = new Vector2(520f, 48f);
     private static readonly Vector2 OrderButtonSize = new Vector2(520f, 48f);
     private static readonly Vector2 ScreenCenter = new Vector2(0.5f, 0.5f);
     private static readonly Vector2 BottomCenter = new Vector2(0.5f, 0f);
@@ -60,7 +61,7 @@ public static class SandboxSceneBuilder
     private const float PassButtonOffset = 520f;
     private const float ResetButtonOffset = 760f;
 
-    static SandboxSceneBuilder()
+    static BattleSceneBuilder()
     {
         // Wait until Unity has finished loading before touching scenes.
         EditorApplication.delayCall += BuildSceneIfMissing;
@@ -81,7 +82,7 @@ public static class SandboxSceneBuilder
     /// the buttons, and the rules tooltip, saves it, opens it, and updates the
     /// build scene list.
     /// </summary>
-    [MenuItem("KyubPon/Rebuild Sandbox Scene")]
+    [MenuItem("KyubPon/Rebuild Battle Scene")]
     public static void BuildScene()
     {
         Font font = SceneBuilderTools.LoadPixelFont();
@@ -91,9 +92,9 @@ public static class SandboxSceneBuilder
         SceneBuilderTools.CreateCamera();
         SceneBuilderTools.CreateEventSystem();
 
-        Transform canvas = ui.CreateCanvas("SandboxCanvas");
-        SandboxScreen sandboxScreen = canvas.gameObject.AddComponent<SandboxScreen>();
-        SerializedObject data = new SerializedObject(sandboxScreen);
+        Transform canvas = ui.CreateCanvas("BattleCanvas");
+        BattleScreen battleScreen = canvas.gameObject.AddComponent<BattleScreen>();
+        SerializedObject data = new SerializedObject(battleScreen);
 
         BuildTopLines(ui, canvas, data);
         BuildSizeControls(ui, canvas, data);
@@ -120,12 +121,20 @@ public static class SandboxSceneBuilder
     /// <summary>The title, the battle numbers, and the status line that says what is happening.</summary>
     private static void BuildTopLines(MenuUiBuilder ui, Transform canvas, SerializedObject data)
     {
-        UnityEngine.UI.Text heading = ui.CreateLabel(canvas, "Heading", "SANDBOX - TEST", HeadingFontSize);
+        UnityEngine.UI.Text heading = ui.CreateLabel(canvas, "Heading", "BATTLE", HeadingFontSize);
         SceneBuilderTools.PlaceAtEdge(heading.rectTransform, TopCenter, new Vector2(0f, -HeadingOffsetFromTop), HeadingSize);
+
+        // In the top-left corner: appears for a moment each time the battle is saved.
+        UnityEngine.UI.Text autosave = ui.CreateLabel(canvas, "AutosaveLabel", "AUTOSAVING...", NoteFontSize);
+        autosave.alignment = TextAnchor.UpperLeft;
+        autosave.raycastTarget = false;
+        SceneBuilderTools.PlaceAtEdge(autosave.rectTransform, TopLeft, new Vector2(CornerMargin, -CornerMargin), AutosaveLabelSize);
+        SceneBuilderTools.SetReference(data, "_autosaveLabel", autosave);
+        autosave.gameObject.SetActive(false);
 
         // In the top-right corner: switches the order in which squares are activated.
         UnityEngine.UI.Button order = ui.CreateTextButton(canvas, "OrderButton", "ORDER: LEFT TO RIGHT", NoteFontSize);
-        SceneBuilderTools.PlaceAtEdge((RectTransform)order.transform, TopRight, new Vector2(-OrderButtonMargin, -OrderButtonMargin), OrderButtonSize);
+        SceneBuilderTools.PlaceAtEdge((RectTransform)order.transform, TopRight, new Vector2(-CornerMargin, -CornerMargin), OrderButtonSize);
         SceneBuilderTools.SetReference(data, "_orderButton", order);
         SceneBuilderTools.SetReference(data, "_orderLabel", order.GetComponent<UnityEngine.UI.Text>());
 

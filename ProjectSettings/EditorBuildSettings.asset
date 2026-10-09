@@ -12,6 +12,6 @@ EditorBuildSettings:
     path: Assets/Game/Scenes/HomeScreen.unity
     guid: 3190389f9515fba4bb908038088a1da1
   - enabled: 1
-    path: Assets/Game/Scenes/Sandbox.unity
+    path: Assets/Game/Scenes/Battle.unity
     guid: d04bacc43fa8147478a9be1b04284921
   m_configObjects: {}

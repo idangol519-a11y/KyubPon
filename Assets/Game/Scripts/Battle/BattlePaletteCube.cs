@@ -3,18 +3,17 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 
 /// <summary>
-/// TEMPORARY (sandbox test page, to be removed).
 /// One block of the player's hand, shown under the grid. Dragging it carries a copy
 /// with the mouse; dropping the copy on an empty square places the block there.
 /// </summary>
-public class SandboxPaletteCube : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler,
+public class BattlePaletteCube : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler,
     IPointerEnterHandler, IPointerExitHandler
 {
     // Reused for every drop so no new list is created each time.
     private static readonly List<RaycastResult> RaycastResults = new List<RaycastResult>();
 
-    private SandboxCubeKind _kind;
-    private SandboxScreen _screen;
+    private BattleCubeKind _kind;
+    private BattleScreen _screen;
     private RectTransform _dragLayer;
     private RectTransform _draggedCopy;
 
@@ -22,13 +21,13 @@ public class SandboxPaletteCube : MonoBehaviour, IBeginDragHandler, IDragHandler
     /// Creates a palette block. The drag layer is the object the dragged copy is
     /// put under, so it is drawn on top of everything else.
     /// </summary>
-    public static SandboxPaletteCube Create(Transform parent, SandboxCubeKind kind, SandboxScreen screen, RectTransform dragLayer)
+    public static BattlePaletteCube Create(Transform parent, BattleCubeKind kind, BattleScreen screen, RectTransform dragLayer)
     {
         GameObject cubeObject = new GameObject(kind.Name + " Palette Block", typeof(RectTransform));
         cubeObject.transform.SetParent(parent, false);
         kind.ApplyLook(cubeObject.AddComponent<UnityEngine.UI.Image>(), 0f);
 
-        SandboxPaletteCube cube = cubeObject.AddComponent<SandboxPaletteCube>();
+        BattlePaletteCube cube = cubeObject.AddComponent<BattlePaletteCube>();
         cube._kind = kind;
         cube._screen = screen;
         cube._dragLayer = dragLayer;
@@ -87,7 +86,7 @@ public class SandboxPaletteCube : MonoBehaviour, IBeginDragHandler, IDragHandler
         _draggedCopy = null;
         _screen.SetDraggingBlock(false);
 
-        SandboxCell cell = FindCellUnderPointer(eventData);
+        BattleCell cell = FindCellUnderPointer(eventData);
         if (cell != null)
         {
             // The mouse is already on this square, so Unity will not report "entering" it.
@@ -98,12 +97,12 @@ public class SandboxPaletteCube : MonoBehaviour, IBeginDragHandler, IDragHandler
         }
     }
 
-    private static SandboxCell FindCellUnderPointer(PointerEventData eventData)
+    private static BattleCell FindCellUnderPointer(PointerEventData eventData)
     {
         EventSystem.current.RaycastAll(eventData, RaycastResults);
         foreach (RaycastResult result in RaycastResults)
         {
-            SandboxCell cell = result.gameObject.GetComponentInParent<SandboxCell>();
+            BattleCell cell = result.gameObject.GetComponentInParent<BattleCell>();
             if (cell != null)
             {
                 return cell;

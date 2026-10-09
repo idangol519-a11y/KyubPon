@@ -2,11 +2,10 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 
 /// <summary>
-/// TEMPORARY (sandbox test page, to be removed).
-/// One square of the sandbox grid on screen. It draws whatever block the board
+/// One square of the battle grid on screen. It draws whatever block the board
 /// says is on it: the block's color, its HP, and an X if it is an enemy block.
 /// </summary>
-public class SandboxCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+public class BattleCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
     // How far the block picture stays from the edges of the square.
     private const float BlockInset = 8f;
@@ -28,18 +27,18 @@ public class SandboxCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
     private UnityEngine.UI.Text _hpText;
     private UnityEngine.UI.Image _areaTint;
     private Color _normalColor;
-    private SandboxScreen _screen;
+    private BattleScreen _screen;
 
     /// <summary>Where this square is in the grid: x is the column, y is the row.</summary>
     public Vector2Int GridPosition { get; private set; }
 
     /// <summary>Creates an empty square at the given grid position.</summary>
-    public static SandboxCell Create(Transform parent, Vector2Int gridPosition, Color color, Font font, SandboxScreen screen)
+    public static BattleCell Create(Transform parent, Vector2Int gridPosition, Color color, Font font, BattleScreen screen)
     {
         GameObject cellObject = new GameObject($"Cell {gridPosition.x},{gridPosition.y}", typeof(RectTransform));
         cellObject.transform.SetParent(parent, false);
 
-        SandboxCell cell = cellObject.AddComponent<SandboxCell>();
+        BattleCell cell = cellObject.AddComponent<BattleCell>();
         cell.GridPosition = gridPosition;
         cell._normalColor = color;
         cell._screen = screen;
@@ -89,7 +88,7 @@ public class SandboxCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
     }
 
     /// <summary>Draws the given block on this square. Pass null for an empty square.</summary>
-    public void Show(SandboxBlock block)
+    public void Show(BattleBlock block)
     {
         _blockImage.gameObject.SetActive(block != null);
         if (block == null)
@@ -97,7 +96,7 @@ public class SandboxCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHand
             return;
         }
 
-        bool isEnemy = block.Side == SandboxSide.Enemy;
+        bool isEnemy = block.Side == BattleSide.Enemy;
         block.Kind.ApplyLook(_blockImage, isEnemy ? EnemyDarkening : 0f);
         _enemyMark.enabled = isEnemy;
         _hpText.text = block.Hp.ToString();

@@ -1,8 +1,7 @@
 /// <summary>
-/// TEMPORARY (sandbox test page, to be removed).
-/// What a sandbox block does when it is activated.
+/// What a block does when it is activated.
 /// </summary>
-public enum SandboxAbility
+public enum BattleAbility
 {
     /// <summary>Damages every opposing block directly next to it.</summary>
     Strike,
