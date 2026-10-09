@@ -362,7 +362,7 @@ public class SandboxScreen : MonoBehaviour
     {
         _statusLabel.text = "ENEMY IS CHOOSING...";
         yield return _enemyThinkWait;
-        SandboxBlock enemyBlock = _enemy.PlaceBlock(_board, _enemyHand);
+        SandboxBlock enemyBlock = _enemy.PlaceBlock(_board, _enemyHand, _isRandomOrder);
         _statusLabel.text = enemyBlock != null ? $"ENEMY PLACES {enemyBlock.Kind.Name}" : "ENEMY HAS NO ROOM TO PLACE";
         if (enemyBlock != null)
         {
@@ -429,7 +429,7 @@ public class SandboxScreen : MonoBehaviour
     {
         _blocksThatActed.Clear();
         _hitsThisTurn = 0;
-        BuildVisitOrder();
+        SandboxActivation.BuildVisitOrder(_board, _random, _isRandomOrder, _visitOrder, _blockSquares);
 
         for (int step = 0; step < _visitOrder.Count; step++)
         {
@@ -507,58 +507,12 @@ public class SandboxScreen : MonoBehaviour
     }
 
     /// <summary>
-    /// Fills the list of squares to visit this turn.
-    /// Left to right: start at a random block and go square by square in reading
-    /// order, wrapping from the last square back to the first.
-    /// Random: all squares, shuffled, so the order is different every turn.
-    /// </summary>
-    private void BuildVisitOrder()
-    {
-        _visitOrder.Clear();
-        int startIndex = _isRandomOrder ? 0 : PickStartIndex();
-        for (int step = 0; step < _cells.Count; step++)
-        {
-            _visitOrder.Add((startIndex + step) % _cells.Count);
-        }
-
-        if (!_isRandomOrder)
-        {
-            return;
-        }
-
-        // A standard shuffle: walk back from the end, swapping each entry with a
-        // randomly chosen one at or before it. Every order is equally likely.
-        for (int last = _visitOrder.Count - 1; last > 0; last--)
-        {
-            int other = _random.Next(last + 1);
-            int swapped = _visitOrder[last];
-            _visitOrder[last] = _visitOrder[other];
-            _visitOrder[other] = swapped;
-        }
-    }
-
-    /// <summary>
-    /// Picks the square of a random block to start from.
-    /// With no blocks at all, any square can be the start.
-    /// </summary>
-    private int PickStartIndex()
-    {
-        _board.CollectPositions(_blockSquares, false);
-        if (_blockSquares.Count == 0)
-        {
-            return _random.Next(_cells.Count);
-        }
-
-        return IndexOf(_blockSquares[_random.Next(_blockSquares.Count)]);
-    }
-
-    /// <summary>
     /// Squares are created row by row, so the square at (column, row)
     /// is always at this position in the list.
     /// </summary>
     private int IndexOf(Vector2Int position)
     {
-        return position.y * _board.Columns + position.x;
+        return SandboxActivation.IndexOf(_board, position);
     }
 
     /// <summary>Shows the blocks left in the player's hand under the grid, ready to be dragged.</summary>

@@ -1,6 +1,6 @@
 # Game State
 
-Current version: **0.14.0**
+Current version: **0.15.0**
 
 ## Built
 - Unity 2D project setup (Force Text serialization, Visible Meta Files, 2D editor mode).
@@ -38,6 +38,7 @@ A test page for trying out a grid and drag-and-drop. It is not part of the game 
 - **Slash frames are not in Git.** They were cut from a GIF supplied by Idan (`demon-awakening-effect-slash-3.gif`) whose source and license are not confirmed, so `Assets/StreamingAssets/Content/Effects/` is ignored by Git and exists only on Idan's PC. Without the frames the game draws a plain white streak. Replace them with art we own before any release.
 - Each block's rules appear in a tooltip after the mouse rests on it for one second (palette or grid). The tooltip text is generated from the block list.
 - Moving the mouse onto a placed block tints its area of effect: red for squares it attacks, blue for other effects (heal targets, and where a pushed block would land). The squares come from `SandboxCombat.CollectAreaOfEffect`, which must be kept in step with the ability code beside it.
+- Enemy: `SandboxEnemy` looks one turn ahead. It tries each kind of block in its hand on each empty square, simulates the activation 6 times on a spare board, scores each result (4 points per block alive plus its HP, 6 extra for an orange block; its own count for, the player's against), averages, and picks the best, choosing at random between near-equal moves. It does not consider the player's reply. The numbers are constants at the top of the file.
 - Activation order: the ORDER button switches between left to right (from a random block, in reading order) and random (all squares shuffled). Either way each square is visited once, and an orange retrigger does not count as a block's visit.
 - Orange is the legendary block: every friend next to it uses its ability again, then every enemy on the grid takes 1 damage. Two orange blocks side by side do not trigger each other. It is dealt a quarter as often as the others (`DealWeight` in `SandboxCubeKind.cs`). Its skin is a code-generated placeholder.
 - Block rules: red -2 HP to each enemy next to it; blue pushes each enemy next to it one square (off the edge = destroyed, blocked = -1 HP); green +2 HP to each friend next to it; yellow -1 HP to every enemy in its row. The numbers are constants in `SandboxCombat.cs` and the block list is in `SandboxCubeKind.cs`; the rules note on the page is generated from them.

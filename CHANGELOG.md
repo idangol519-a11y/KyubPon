@@ -6,6 +6,15 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-10-09
+
+### Changed
+- Sandbox: the enemy now plans its move the way a simple chess program does. It tries every block in its hand on every empty square, plays the rest of the turn out in its head several times for each, scores the boards that result, and picks the best. Before, it put a random block next to one of yours.
+- Sandbox: the enemy plans with whichever activation order is selected (left to right or random).
+
+### Added
+- `SandboxActivation`: the rule for the order squares are visited in, shared by the screen and the enemy so they can never disagree.
+
 ## [0.14.0] - 2026-10-09
 
 ### Added
