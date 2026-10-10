@@ -6,6 +6,20 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-10-10
+
+### Added
+- Item library on the left of the battle screen, with the player's two items.
+- **Potion**: click it on your turn to use it. For that one turn your red blocks remove 1 extra HP with every hit. It works once per battle and then shows "USED UP". RESET gives it back.
+- **Gem** (a trinket, never used up): before you place a block you can drag any of your own blue blocks to an empty square, as many times as you like.
+- A block's tooltip now says when the potion or the gem affects it.
+- The potion's state is part of the autosave. Older saves still load, with the potion unused.
+- `ItemIconLoader` reads item pictures from `StreamingAssets/Content/Items/<Name>/<Name>.png`. A missing picture shows as a plain colored square.
+
+### Changed
+- The grid sits a little to the right and is narrower, to make room for the item library. Very wide, short grids get slightly smaller squares.
+- The enemy takes the potion into account when it plans its move.
+
 ## [0.16.0] - 2026-10-09
 
 ### Added

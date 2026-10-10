@@ -57,13 +57,14 @@ public static class BattleCombat
     /// the board and added to the "destroyed" list so the caller can count them.
     /// "attackedSquares" is filled with the square of every block it attacked
     /// (where that block stood when it was hit), so the caller can animate the hits.
+    /// "playerStrikeBonus" is extra HP the player's Strikes remove this turn (the potion); pass 0 for none.
     /// Returns true if the ability did anything: hit, pushed, or healed at least one block.
     /// </summary>
     public static bool Activate(BattleBoard board, BattleBlock block, List<BattleBlock> destroyed,
-        List<Vector2Int> attackedSquares)
+        List<Vector2Int> attackedSquares, int playerStrikeBonus)
     {
         attackedSquares.Clear();
-        return UseAbility(board, block, destroyed, attackedSquares);
+        return UseAbility(board, block, destroyed, attackedSquares, playerStrikeBonus);
     }
 
     /// <summary>
@@ -72,13 +73,13 @@ public static class BattleCombat
     /// Returns true if the ability did anything.
     /// </summary>
     private static bool UseAbility(BattleBoard board, BattleBlock block, List<BattleBlock> destroyed,
-        List<Vector2Int> attackedSquares)
+        List<Vector2Int> attackedSquares, int playerStrikeBonus)
     {
         int hitsBefore = attackedSquares.Count;
         switch (block.Kind.Ability)
         {
             case BattleAbility.Strike:
-                StrikeNeighbours(board, block, destroyed, attackedSquares);
+                StrikeNeighbours(board, block, destroyed, attackedSquares, playerStrikeBonus);
                 break;
             case BattleAbility.Push:
                 PushNeighbours(board, block, destroyed, attackedSquares);
@@ -89,7 +90,7 @@ public static class BattleCombat
                 ShootRow(board, block, destroyed, attackedSquares);
                 break;
             case BattleAbility.Legend:
-                bool friendsDidSomething = RetriggerNeighbours(board, block, destroyed, attackedSquares);
+                bool friendsDidSomething = RetriggerNeighbours(board, block, destroyed, attackedSquares, playerStrikeBonus);
                 HitEveryOpponent(board, block, destroyed, attackedSquares);
                 return friendsDidSomething || attackedSquares.Count > hitsBefore;
         }
@@ -103,7 +104,7 @@ public static class BattleCombat
     /// trigger each other forever.
     /// </summary>
     private static bool RetriggerNeighbours(BattleBoard board, BattleBlock block, List<BattleBlock> destroyed,
-        List<Vector2Int> attackedSquares)
+        List<Vector2Int> attackedSquares, int playerStrikeBonus)
     {
         bool anyDidSomething = false;
         foreach (Vector2Int direction in Directions)
@@ -113,7 +114,7 @@ public static class BattleCombat
                 && friend.Kind.Ability != BattleAbility.Legend;
             if (canRetrigger)
             {
-                anyDidSomething |= UseAbility(board, friend, destroyed, attackedSquares);
+                anyDidSomething |= UseAbility(board, friend, destroyed, attackedSquares, playerStrikeBonus);
             }
         }
 
@@ -214,15 +215,17 @@ public static class BattleCombat
     }
 
     private static void StrikeNeighbours(BattleBoard board, BattleBlock block, List<BattleBlock> destroyed,
-        List<Vector2Int> attackedSquares)
+        List<Vector2Int> attackedSquares, int playerStrikeBonus)
     {
+        // Only the player has a potion, so the bonus never helps an enemy block.
+        int damage = block.Side == BattleSide.Player ? StrikeDamage + playerStrikeBonus : StrikeDamage;
         foreach (Vector2Int direction in Directions)
         {
             BattleBlock target = board.GetBlock(block.Position + direction);
             if (IsOpponent(block, target))
             {
                 attackedSquares.Add(target.Position);
-                Damage(board, target, StrikeDamage, destroyed);
+                Damage(board, target, damage, destroyed);
             }
         }
     }

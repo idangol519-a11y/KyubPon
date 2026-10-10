@@ -13,6 +13,8 @@ using UnityEngine.SceneManagement;
 /// by themselves until one side has no blocks left (the other side wins) or the
 /// board has looked exactly the same three times (a draw).
 /// Holding the mouse over a block for a moment shows a tooltip with its rules.
+/// The item library on the left holds the player's items: a potion that can be used
+/// once, and a gem that lets the player's blue blocks be dragged to another square.
 /// The battle is saved after every turn (an "AUTOSAVING..." note shows for a moment),
 /// so Continue brings it back exactly as it was at the end of the last finished turn.
 /// This script only runs the turn and draws the board; the fighting rules are
@@ -25,6 +27,13 @@ public class BattleScreen : MonoBehaviour
     private const string BoardFullText = "GRID IS FULL: PRESS PASS OR RESET";
     private const string OrderLeftToRightText = "ORDER: LEFT TO RIGHT";
     private const string OrderRandomText = "ORDER: RANDOM";
+
+    // The item pictures: StreamingAssets/Content/Items/<name>/<name>.png.
+    private const string PotionIconName = "Potion";
+    private const string GemIconName = "Gem";
+    private const string PotionReadyText = "CLICK TO USE";
+    private const string PotionActiveText = "ACTIVE THIS TURN";
+    private const string PotionUsedText = "USED UP";
 
     // The battle is a draw when the board has looked exactly the same this many times.
     private const int RepeatsForDraw = 3;
@@ -77,6 +86,10 @@ public class BattleScreen : MonoBehaviour
     [SerializeField] private UnityEngine.UI.Button _passButton;
     [SerializeField] private UnityEngine.UI.Button _resetButton;
     [SerializeField] private UnityEngine.UI.Button _backButton;
+    [SerializeField] private UnityEngine.UI.Button _potionButton;
+    [SerializeField] private UnityEngine.UI.Image _potionIcon;
+    [SerializeField] private UnityEngine.UI.Text _potionStateLabel;
+    [SerializeField] private UnityEngine.UI.Image _gemIcon;
 
     private readonly List<BattleCell> _cells = new List<BattleCell>();
     private readonly List<Vector2Int> _blockSquares = new List<Vector2Int>();
@@ -99,6 +112,7 @@ public class BattleScreen : MonoBehaviour
     private BattleEnemy _enemy;
     private readonly BattleHand _playerHand = new BattleHand();
     private readonly BattleHand _enemyHand = new BattleHand();
+    private readonly BattleItems _items = new BattleItems();
     private readonly List<GameObject> _paletteCubes = new List<GameObject>();
 
     // True once a winner or a draw has been announced. Only RESET and BACK work then.
@@ -144,11 +158,17 @@ public class BattleScreen : MonoBehaviour
         _passButton.onClick.AddListener(PassTurn);
         _resetButton.onClick.AddListener(ResetBattle);
         _backButton.onClick.AddListener(ReturnToHomeScreen);
+        _potionButton.onClick.AddListener(UsePotion);
     }
+
+    /// <summary>The object dragged blocks are put under, so they are drawn on top of the grid.</summary>
+    public RectTransform DragLayer => _dragLayer;
 
     private void Start()
     {
         HideTooltip();
+        ShowItemPicture(_potionIcon, PotionIconName);
+        ShowItemPicture(_gemIcon, GemIconName);
         _autosaveLabel.gameObject.SetActive(false);
 
         // Continue arrives here with a save on disk. New Game deletes the save first,
@@ -198,7 +218,9 @@ public class BattleScreen : MonoBehaviour
         _playerBlocksDestroyed = 0;
         _isBattleOver = false;
         _timesPositionSeen.Clear();
+        _items.Reset();
 
+        ShowItems();
         DrawBoard();
         DrawHand();
         ShowStats();
@@ -243,7 +265,9 @@ public class BattleScreen : MonoBehaviour
             PlayerBlocksDestroyed = _playerBlocksDestroyed,
             IsRandomOrder = _isRandomOrder,
             IsBattleOver = _isBattleOver,
-            ResultText = _resultText
+            ResultText = _resultText,
+            IsPotionUsed = _items.IsPotionUsed,
+            IsPotionActive = _items.IsPotionActive
         };
 
         _board.CollectPositions(_blockSquares, false);
@@ -314,6 +338,7 @@ public class BattleScreen : MonoBehaviour
         _isRandomOrder = data.IsRandomOrder;
         _isBattleOver = data.IsBattleOver;
         _resultText = data.ResultText;
+        _items.Restore(data.IsPotionUsed, data.IsPotionActive);
 
         _timesPositionSeen.Clear();
         int seenCount = Mathf.Min(data.SeenPositions.Count, data.SeenPositionCounts.Count);
@@ -324,6 +349,7 @@ public class BattleScreen : MonoBehaviour
 
         RebuildCells();
         DrawHand();
+        ShowItems();
         ShowActivationOrder();
         ShowStats();
         ShowWhoseTurn();
@@ -459,6 +485,56 @@ public class BattleScreen : MonoBehaviour
         StartCoroutine(RunRestOfTurn());
     }
 
+    /// <summary>
+    /// Called when the potion in the item library is clicked. From now until the end
+    /// of this turn the player's red blocks hit harder. It works once per battle.
+    /// </summary>
+    private void UsePotion()
+    {
+        if (_isTurnRunning || _isBattleOver || !_items.UsePotion())
+        {
+            GameAudio.Play(GameSound.InvalidMove);
+            return;
+        }
+
+        GameAudio.Play(GameSound.Heal);
+        _statusLabel.text = $"POTION USED: YOUR RED BLOCKS HIT +{BattleItems.PotionStrikeBonus} THIS TURN. NOW PLACE A BLOCK";
+        ShowItems();
+        DrawBoard();
+        Autosave();
+    }
+
+    /// <summary>
+    /// True if the player may drag the block on this square to another square right now.
+    /// That is the gem's power: it works on the player's own blue blocks, any number of
+    /// times, but only while the player is still deciding where to place a block.
+    /// </summary>
+    public bool CanMoveBlock(Vector2Int position)
+    {
+        return !_isTurnRunning && !_isBattleOver && BattleItems.CanBeMoved(_board.GetBlock(position));
+    }
+
+    /// <summary>Called when the player drops one of their placed blocks on another square.</summary>
+    public void TryMoveBlock(Vector2Int from, Vector2Int to)
+    {
+        // Dropped back where it started: nothing to do, and not a mistake.
+        if (from == to)
+        {
+            return;
+        }
+
+        if (!CanMoveBlock(from) || _board.GetBlock(to) != null)
+        {
+            GameAudio.Play(GameSound.InvalidMove);
+            return;
+        }
+
+        _board.Move(_board.GetBlock(from), to);
+        GameAudio.Play(GameSound.BlockPlace);
+        DrawBoard();
+        Autosave();
+    }
+
     private void PassTurn()
     {
         if (!_isTurnRunning && !_isBattleOver)
@@ -516,6 +592,10 @@ public class BattleScreen : MonoBehaviour
 
             yield return ActivateEverySquare();
 
+            // The potion lasts for one turn only.
+            _items.EndTurn();
+            ShowItems();
+
             _turnNumber++;
             CheckForEndOfBattle();
             ShowStats();
@@ -531,7 +611,7 @@ public class BattleScreen : MonoBehaviour
     {
         _statusLabel.text = "ENEMY IS CHOOSING...";
         yield return _enemyThinkWait;
-        BattleBlock enemyBlock = _enemy.PlaceBlock(_board, _enemyHand, _isRandomOrder);
+        BattleBlock enemyBlock = _enemy.PlaceBlock(_board, _enemyHand, _isRandomOrder, _items.PlayerStrikeBonus);
         _statusLabel.text = enemyBlock != null ? $"ENEMY PLACES {enemyBlock.Kind.Name}" : "ENEMY HAS NO ROOM TO PLACE";
         if (enemyBlock != null)
         {
@@ -625,7 +705,7 @@ public class BattleScreen : MonoBehaviour
         // Remember where the block stands now: the slashes are drawn from here.
         Vector2Int attackerSquare = block.Position;
         _destroyedBlocks.Clear();
-        bool didSomething = BattleCombat.Activate(_board, block, _destroyedBlocks, _hitSquares);
+        bool didSomething = BattleCombat.Activate(_board, block, _destroyedBlocks, _hitSquares, _items.PlayerStrikeBonus);
         foreach (Vector2Int hitSquare in _hitSquares)
         {
             BattleSlashEffect.Play(_gridArea, PositionOfSquare(attackerSquare), PositionOfSquare(hitSquare), _cellSize);
@@ -786,6 +866,31 @@ public class BattleScreen : MonoBehaviour
         _statusLabel.text = _blockSquares.Count > 0 ? YourTurnText : BoardFullText;
     }
 
+    /// <summary>
+    /// Puts an item's picture on its square in the library. If the PNG is missing the
+    /// square keeps the plain color the scene gave it.
+    /// </summary>
+    private static void ShowItemPicture(UnityEngine.UI.Image image, string itemName)
+    {
+        Sprite picture = ItemIconLoader.Load(itemName);
+        if (picture != null)
+        {
+            image.sprite = picture;
+            image.preserveAspect = true;
+
+            // An image's color is multiplied with its picture, so white shows the picture unchanged.
+            image.color = Color.white;
+        }
+    }
+
+    /// <summary>Makes the item library show whether the potion is ready, active, or used up.</summary>
+    private void ShowItems()
+    {
+        // A button that cannot be pressed is drawn faded, which is how a used potion looks.
+        _potionButton.interactable = !_items.IsPotionUsed;
+        _potionStateLabel.text = _items.IsPotionActive ? PotionActiveText
+            : _items.IsPotionUsed ? PotionUsedText : PotionReadyText;
+    }
 
     private void ShowStats()
     {
@@ -811,7 +916,8 @@ public class BattleScreen : MonoBehaviour
         string owner = block == null ? string.Empty : block.Side == BattleSide.Enemy ? "ENEMY " : "YOUR ";
         string hp = block == null ? $"HP {kind.MaxHp}" : $"HP {block.Hp} / {kind.MaxHp}";
         string colorCode = ColorUtility.ToHtmlStringRGB(kind.Color);
-        _tooltipText.text = $"<size={TooltipTitleFontSize}>{owner}<color=#{colorCode}>{kind.Name}</color></size>\n{hp}\n\n{kind.RuleText}";
+        _tooltipText.text = $"<size={TooltipTitleFontSize}>{owner}<color=#{colorCode}>{kind.Name}</color></size>\n{hp}\n\n{kind.RuleText}"
+            + DescribeItemEffects(block);
 
         bool wasHidden = !_tooltip.gameObject.activeSelf;
         _tooltip.gameObject.SetActive(true);
@@ -819,6 +925,17 @@ public class BattleScreen : MonoBehaviour
         {
             PlaceTooltipNextToPointer();
         }
+    }
+
+    /// <summary>Extra tooltip lines for a block that one of the player's items affects. Empty for any other block.</summary>
+    private string DescribeItemEffects(BattleBlock block)
+    {
+        if (_items.IsBoosted(block))
+        {
+            return $"\n\nPOTION: +{BattleItems.PotionStrikeBonus} HP PER HIT THIS TURN";
+        }
+
+        return BattleItems.CanBeMoved(block) ? "\n\nGEM: DRAG IT TO AN EMPTY SQUARE BEFORE YOU PLACE" : string.Empty;
     }
 
     private void HideTooltip()

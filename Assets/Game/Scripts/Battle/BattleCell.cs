@@ -4,8 +4,10 @@ using UnityEngine.EventSystems;
 /// <summary>
 /// One square of the battle grid on screen. It draws whatever block the board
 /// says is on it: the block's color, its HP, and an X if it is an enemy block.
+/// A block the gem lets the player move can be dragged from here to another square.
 /// </summary>
-public class BattleCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+public class BattleCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler,
+    IBeginDragHandler, IDragHandler, IEndDragHandler
 {
     // How far the block picture stays from the edges of the square.
     private const float BlockInset = 8f;
@@ -28,6 +30,12 @@ public class BattleCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
     private UnityEngine.UI.Image _areaTint;
     private Color _normalColor;
     private BattleScreen _screen;
+
+    // The block this square is showing now, or null when it is empty.
+    private BattleBlock _shownBlock;
+
+    // The picture that follows the mouse while this square's block is being moved.
+    private RectTransform _draggedCopy;
 
     /// <summary>Where this square is in the grid: x is the column, y is the row.</summary>
     public Vector2Int GridPosition { get; private set; }
@@ -65,6 +73,53 @@ public class BattleCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
         _screen.EndHover(null, this);
     }
 
+    /// <summary>
+    /// Called by Unity when the player starts dragging on this square. Nothing happens
+    /// unless the block here is one the player may move right now.
+    /// </summary>
+    public void OnBeginDrag(PointerEventData eventData)
+    {
+        if (!_screen.CanMoveBlock(GridPosition))
+        {
+            return;
+        }
+
+        _screen.SetDraggingBlock(true);
+        GameAudio.Play(GameSound.BlockPickUp);
+        Vector2 size = ((RectTransform)_blockImage.transform).rect.size;
+        _draggedCopy = BattleDrag.CreateCopy(_screen.DragLayer, _shownBlock.Kind, size, eventData.position);
+    }
+
+    /// <summary>Called by Unity every frame while the drag continues.</summary>
+    public void OnDrag(PointerEventData eventData)
+    {
+        if (_draggedCopy != null)
+        {
+            _draggedCopy.position = eventData.position;
+        }
+    }
+
+    /// <summary>Called by Unity when the player lets go. Moves the block to the square under the mouse.</summary>
+    public void OnEndDrag(PointerEventData eventData)
+    {
+        if (_draggedCopy == null)
+        {
+            return;
+        }
+
+        Destroy(_draggedCopy.gameObject);
+        _draggedCopy = null;
+        _screen.SetDraggingBlock(false);
+
+        BattleCell target = BattleDrag.FindCellUnderPointer(eventData);
+        if (target != null)
+        {
+            // The mouse is already on the target square, so the hover is started by hand.
+            _screen.TryMoveBlock(GridPosition, target.GridPosition);
+            _screen.StartHover(null, target);
+        }
+    }
+
     /// <summary>Lights the square up while it is being activated, or returns it to normal.</summary>
     public void SetHighlight(bool isOn, Color highlightColor)
     {
@@ -90,6 +145,7 @@ public class BattleCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
     /// <summary>Draws the given block on this square. Pass null for an empty square.</summary>
     public void Show(BattleBlock block)
     {
+        _shownBlock = block;
         _blockImage.gameObject.SetActive(block != null);
         if (block == null)
         {

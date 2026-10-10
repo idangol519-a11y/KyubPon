@@ -65,8 +65,10 @@ public class BattleEnemy
     /// enemy's hand and puts it on the board. Returns the block, or null when the
     /// hand is empty or the board is full. "isRandomOrder" is the activation order
     /// currently selected, so the enemy plans with the same rule the turn will use.
+    /// "playerStrikeBonus" is the potion's extra damage this turn (0 for none), so the enemy
+    /// knows the player's red blocks hit harder.
     /// </summary>
-    public BattleBlock PlaceBlock(BattleBoard board, BattleHand hand, bool isRandomOrder)
+    public BattleBlock PlaceBlock(BattleBoard board, BattleHand hand, bool isRandomOrder, int playerStrikeBonus)
     {
         board.CollectPositions(_emptySquares, true);
         if (_emptySquares.Count == 0 || hand.Count == 0)
@@ -74,7 +76,7 @@ public class BattleEnemy
             return null;
         }
 
-        FindBestMoves(board, hand, isRandomOrder);
+        FindBestMoves(board, hand, isRandomOrder, playerStrikeBonus);
         int choice = _random.Next(_bestKinds.Count);
         BattleCubeKind kind = _bestKinds[choice];
         hand.Remove(kind);
@@ -85,7 +87,7 @@ public class BattleEnemy
     }
 
     /// <summary>Scores every possible move and keeps the ones that share the best score.</summary>
-    private void FindBestMoves(BattleBoard board, BattleHand hand, bool isRandomOrder)
+    private void FindBestMoves(BattleBoard board, BattleHand hand, bool isRandomOrder, int playerStrikeBonus)
     {
         ListKindsInHand(hand);
         _bestKinds.Clear();
@@ -96,7 +98,7 @@ public class BattleEnemy
         {
             foreach (Vector2Int square in _emptySquares)
             {
-                float score = ScoreMove(board, kind, square, isRandomOrder);
+                float score = ScoreMove(board, kind, square, isRandomOrder, playerStrikeBonus);
                 if (score > bestScore + CloseEnoughToBest)
                 {
                     // Clearly better than anything so far: forget the earlier moves.
@@ -132,7 +134,7 @@ public class BattleEnemy
     /// Plays one move out several times on the spare board and returns the average
     /// score of the boards that result.
     /// </summary>
-    private float ScoreMove(BattleBoard board, BattleCubeKind kind, Vector2Int square, bool isRandomOrder)
+    private float ScoreMove(BattleBoard board, BattleCubeKind kind, Vector2Int square, bool isRandomOrder, int playerStrikeBonus)
     {
         float total = 0f;
         for (int simulation = 0; simulation < SimulationsPerMove; simulation++)
@@ -141,7 +143,7 @@ public class BattleEnemy
             _candidateBlock.Reset(kind, BattleSide.Enemy);
             _spareBoard.Place(_candidateBlock, square);
 
-            SimulateActivation(isRandomOrder);
+            SimulateActivation(isRandomOrder, playerStrikeBonus);
             total += ScoreBoard(_spareBoard);
         }
 
@@ -149,7 +151,7 @@ public class BattleEnemy
     }
 
     /// <summary>The same activation the screen runs, without pictures, sounds, or pauses.</summary>
-    private void SimulateActivation(bool isRandomOrder)
+    private void SimulateActivation(bool isRandomOrder, int playerStrikeBonus)
     {
         BattleActivation.BuildVisitOrder(_spareBoard, _random, isRandomOrder, _visitOrder, _spareSquares);
         _blocksThatActed.Clear();
@@ -160,7 +162,7 @@ public class BattleEnemy
             BattleBlock block = _spareBoard.GetBlock(BattleActivation.SquareAt(_spareBoard, index));
             if (block != null && _blocksThatActed.Add(block))
             {
-                BattleCombat.Activate(_spareBoard, block, _destroyedBlocks, _hitSquares);
+                BattleCombat.Activate(_spareBoard, block, _destroyedBlocks, _hitSquares, playerStrikeBonus);
             }
         }
     }

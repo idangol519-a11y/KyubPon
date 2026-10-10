@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -9,9 +8,6 @@ using UnityEngine.EventSystems;
 public class BattlePaletteCube : MonoBehaviour, IBeginDragHandler, IDragHandler, IEndDragHandler,
     IPointerEnterHandler, IPointerExitHandler
 {
-    // Reused for every drop so no new list is created each time.
-    private static readonly List<RaycastResult> RaycastResults = new List<RaycastResult>();
-
     private BattleCubeKind _kind;
     private BattleScreen _screen;
     private RectTransform _dragLayer;
@@ -51,18 +47,7 @@ public class BattlePaletteCube : MonoBehaviour, IBeginDragHandler, IDragHandler,
     {
         _screen.SetDraggingBlock(true);
         GameAudio.Play(GameSound.BlockPickUp);
-
-        GameObject copy = new GameObject("Dragged Block", typeof(RectTransform));
-        _draggedCopy = (RectTransform)copy.transform;
-        _draggedCopy.SetParent(_dragLayer, false);
-        _draggedCopy.sizeDelta = ((RectTransform)transform).rect.size;
-        _draggedCopy.position = eventData.position;
-
-        // The copy must not block the mouse, or the square underneath
-        // could not be found when the copy is dropped.
-        UnityEngine.UI.Image image = copy.AddComponent<UnityEngine.UI.Image>();
-        _kind.ApplyLook(image, 0f);
-        image.raycastTarget = false;
+        _draggedCopy = BattleDrag.CreateCopy(_dragLayer, _kind, ((RectTransform)transform).rect.size, eventData.position);
     }
 
     /// <summary>Called by Unity every frame while the drag continues.</summary>
@@ -86,7 +71,7 @@ public class BattlePaletteCube : MonoBehaviour, IBeginDragHandler, IDragHandler,
         _draggedCopy = null;
         _screen.SetDraggingBlock(false);
 
-        BattleCell cell = FindCellUnderPointer(eventData);
+        BattleCell cell = BattleDrag.FindCellUnderPointer(eventData);
         if (cell != null)
         {
             // The mouse is already on this square, so Unity will not report "entering" it.
@@ -95,20 +80,5 @@ public class BattlePaletteCube : MonoBehaviour, IBeginDragHandler, IDragHandler,
             _screen.TryPlacePlayerBlock(_kind, cell.GridPosition);
             _screen.StartHover(null, cell);
         }
-    }
-
-    private static BattleCell FindCellUnderPointer(PointerEventData eventData)
-    {
-        EventSystem.current.RaycastAll(eventData, RaycastResults);
-        foreach (RaycastResult result in RaycastResults)
-        {
-            BattleCell cell = result.gameObject.GetComponentInParent<BattleCell>();
-            if (cell != null)
-            {
-                return cell;
-            }
-        }
-
-        return null;
     }
 }

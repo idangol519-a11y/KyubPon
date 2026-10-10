@@ -26,6 +26,19 @@ public static class BattleSceneBuilder
     private const float StatsOffsetFromTop = 158f;
     private const float StatusOffsetFromTop = 202f;
     private const float GridOffsetFromCenter = -50f;
+
+    // The grid sits a little right of the middle, to leave the left edge for the item library.
+    private const float GridOffsetFromMiddle = 200f;
+
+    // The item library: a heading, then one entry per item. Each entry is a picture
+    // with the item's name, what it does, and its state underneath.
+    private const int ItemTextFontSize = 16;
+    private const float ItemTextLineSpacing = 1.4f;
+    private const float FirstItemOffsetFromTop = 56f;
+    private const float SecondItemOffsetFromTop = 366f;
+    private const float ItemNameOffset = 124f;
+    private const float ItemDescriptionOffset = 164f;
+    private const float ItemStateOffset = 264f;
     private const float BottomRowOffsetFromBottom = 30f;
     private const float PaletteOffsetFromCenter = -350f;
     private const float PaletteSpacing = 12f;
@@ -50,7 +63,19 @@ public static class BattleSceneBuilder
     private static readonly Vector2 HeadingSize = new Vector2(1800f, 56f);
     private static readonly Vector2 ControlsSize = new Vector2(1800f, 56f);
     private static readonly Vector2 LineSize = new Vector2(1800f, 32f);
-    private static readonly Vector2 GridAreaSize = new Vector2(1800f, 680f);
+    private static readonly Vector2 GridAreaSize = new Vector2(1400f, 680f);
+    private static readonly Vector2 LeftCenter = new Vector2(0f, 0.5f);
+    private static readonly Vector2 ItemLibrarySize = new Vector2(380f, 680f);
+    private static readonly Vector2 ItemHeadingSize = new Vector2(380f, 32f);
+    private static readonly Vector2 ItemPictureSize = new Vector2(112f, 112f);
+    private static readonly Vector2 ItemNameSize = new Vector2(380f, 32f);
+    private static readonly Vector2 ItemDescriptionSize = new Vector2(380f, 96f);
+    private static readonly Vector2 ItemStateSize = new Vector2(380f, 24f);
+
+    // Shown only when an item's PNG is missing: a plain square in the item's color.
+    private static readonly Color PotionFallbackColor = new Color(0.90f, 0.30f, 0.25f);
+    private static readonly Color GemFallbackColor = new Color(0.25f, 0.60f, 0.95f);
+    private static readonly Color ItemStateColor = new Color(1f, 0.82f, 0.2f);
     private static readonly Vector2 PaletteSize = new Vector2(1100f, 100f);
     private static readonly Vector2 BottomButtonSize = new Vector2(200f, 100f);
     private static readonly Color TooltipBackgroundColor = new Color(0.02f, 0.02f, 0.04f, 1f);
@@ -78,7 +103,7 @@ public static class BattleSceneBuilder
     }
 
     /// <summary>
-    /// Creates the scene with the size controls, the grid area, the block palette,
+    /// Creates the scene with the size controls, the grid area, the item library, the block palette,
     /// the buttons, and the rules tooltip, saves it, opens it, and updates the
     /// build scene list.
     /// </summary>
@@ -99,6 +124,7 @@ public static class BattleSceneBuilder
         BuildTopLines(ui, canvas, data);
         BuildSizeControls(ui, canvas, data);
         BuildGridArea(canvas, data);
+        BuildItemLibrary(ui, canvas, data);
         BuildPalette(ui, canvas, data);
         BuildBottomButtons(ui, canvas, data);
 
@@ -177,15 +203,74 @@ public static class BattleSceneBuilder
     }
 
     /// <summary>
-    /// An empty box that fills the middle of the screen from side to side.
+    /// An empty box that fills the middle of the screen, to the right of the item library.
     /// The grid squares are created inside it when the game runs.
     /// </summary>
     private static void BuildGridArea(Transform canvas, SerializedObject data)
     {
         GameObject gridArea = new GameObject("GridArea", typeof(RectTransform));
         gridArea.transform.SetParent(canvas, false);
-        SceneBuilderTools.PlaceAtEdge((RectTransform)gridArea.transform, ScreenCenter, new Vector2(0f, GridOffsetFromCenter), GridAreaSize);
+        SceneBuilderTools.PlaceAtEdge((RectTransform)gridArea.transform, ScreenCenter, new Vector2(GridOffsetFromMiddle, GridOffsetFromCenter), GridAreaSize);
         SceneBuilderTools.SetReference(data, "_gridArea", gridArea.transform);
+    }
+
+    /// <summary>
+    /// The column on the left edge that holds the player's items: the potion, which is
+    /// clicked to use it, and the gem, which works by itself for the whole battle.
+    /// </summary>
+    private static void BuildItemLibrary(MenuUiBuilder ui, Transform canvas, SerializedObject data)
+    {
+        GameObject library = new GameObject("ItemLibrary", typeof(RectTransform));
+        library.transform.SetParent(canvas, false);
+        SceneBuilderTools.PlaceAtEdge((RectTransform)library.transform, LeftCenter, new Vector2(CornerMargin, GridOffsetFromCenter), ItemLibrarySize);
+
+        UnityEngine.UI.Text heading = ui.CreateLabel(library.transform, "Heading", "ITEMS", NoteFontSize);
+        SceneBuilderTools.PlaceAtEdge(heading.rectTransform, TopCenter, Vector2.zero, ItemHeadingSize);
+
+        UnityEngine.UI.Image potion = BuildItem(ui, library.transform, "Potion", "POTION", PotionFallbackColor, FirstItemOffsetFromTop,
+            $"ONE USE. YOUR RED BLOCKS HIT +{BattleItems.PotionStrikeBonus} HARDER FOR ONE TURN", "CLICK TO USE", out UnityEngine.UI.Text potionState);
+
+        // The potion's picture is also its button. A faded picture means it is used up.
+        UnityEngine.UI.Button potionButton = potion.gameObject.AddComponent<UnityEngine.UI.Button>();
+        potionButton.targetGraphic = potion;
+        potion.raycastTarget = true;
+        potion.gameObject.AddComponent<ButtonSound>();
+        SceneBuilderTools.SetReference(data, "_potionButton", potionButton);
+        SceneBuilderTools.SetReference(data, "_potionIcon", potion);
+        SceneBuilderTools.SetReference(data, "_potionStateLabel", potionState);
+
+        UnityEngine.UI.Image gem = BuildItem(ui, library.transform, "Gem", "GEM", GemFallbackColor, SecondItemOffsetFromTop,
+            "TRINKET. DRAG YOUR BLUE BLOCKS TO ANY EMPTY SQUARE BEFORE YOU PLACE", "ALWAYS ON", out _);
+        SceneBuilderTools.SetReference(data, "_gemIcon", gem);
+    }
+
+    /// <summary>
+    /// Builds one entry of the item library and returns its picture. "offsetFromTop" is
+    /// how far below the top of the library the entry starts.
+    /// </summary>
+    private static UnityEngine.UI.Image BuildItem(MenuUiBuilder ui, Transform library, string objectName, string itemName,
+        Color fallbackColor, float offsetFromTop, string description, string state, out UnityEngine.UI.Text stateLabel)
+    {
+        GameObject picture = new GameObject(objectName + "Picture", typeof(RectTransform));
+        picture.transform.SetParent(library, false);
+        SceneBuilderTools.PlaceAtEdge((RectTransform)picture.transform, TopCenter, new Vector2(0f, -offsetFromTop), ItemPictureSize);
+        UnityEngine.UI.Image image = picture.AddComponent<UnityEngine.UI.Image>();
+        image.color = fallbackColor;
+        image.raycastTarget = false;
+
+        UnityEngine.UI.Text name = ui.CreateLabel(library, objectName + "Name", itemName, NoteFontSize);
+        SceneBuilderTools.PlaceAtEdge(name.rectTransform, TopCenter, new Vector2(0f, -offsetFromTop - ItemNameOffset), ItemNameSize);
+
+        UnityEngine.UI.Text text = ui.CreateLabel(library, objectName + "Description", description, ItemTextFontSize);
+        text.alignment = TextAnchor.UpperCenter;
+        text.horizontalOverflow = HorizontalWrapMode.Wrap;
+        text.lineSpacing = ItemTextLineSpacing;
+        SceneBuilderTools.PlaceAtEdge(text.rectTransform, TopCenter, new Vector2(0f, -offsetFromTop - ItemDescriptionOffset), ItemDescriptionSize);
+
+        stateLabel = ui.CreateLabel(library, objectName + "State", state, ItemTextFontSize);
+        stateLabel.color = ItemStateColor;
+        SceneBuilderTools.PlaceAtEdge(stateLabel.rectTransform, TopCenter, new Vector2(0f, -offsetFromTop - ItemStateOffset), ItemStateSize);
+        return image;
     }
 
     /// <summary>A row at the bottom-left. The blocks of the player's hand are added to it when the game runs.</summary>
