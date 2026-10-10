@@ -7,7 +7,7 @@ places its own. Blocks act through their stats and abilities, and abilities can
 trigger each other in chain reactions. Between levels you visit a shop or an
 event, and the run continues through harder and harder levels until you lose.
 
-**Status:** early development, version `0.18.0`. The project currently contains
+**Status:** early development, version `0.19.0`. The project currently contains
 the Unity setup, a title screen, and the Home screen with a settings panel. See
 [docs/GameState.md](docs/GameState.md) for what is built and what is in progress.
 

@@ -18,6 +18,12 @@ public class BattleBlock
     /// <summary>Where the block is on the board: x is the column, y is the row. Set by the board.</summary>
     public Vector2Int Position { get; set; }
 
+    /// <summary>
+    /// The game time, in seconds, at which the block was put on the board. The screen
+    /// sets it. It only times the block's idle bobbing; the rules never look at it.
+    /// </summary>
+    public float PlacedAtSeconds { get; set; }
+
     /// <summary>True while the block still has HP.</summary>
     public bool IsAlive => Hp > 0;
 

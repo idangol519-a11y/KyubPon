@@ -6,6 +6,11 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.19.0] - 2026-10-10
+
+### Added
+- Idle animation: every block on the board bobs gently up and down. Each block's bob is timed from the moment it was placed, so blocks placed at different moments move out of step. A block keeps its rhythm when it is pushed or moved, and after Continue.
+
 ## [0.18.0] - 2026-10-10
 
 ### Added
