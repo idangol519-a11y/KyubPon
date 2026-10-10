@@ -14,7 +14,7 @@ using UnityEngine.SceneManagement;
 /// board has looked exactly the same three times (a draw).
 /// Holding the mouse over a block for a moment shows a tooltip with its rules.
 /// The item library on the left holds the player's items: a potion that can be used
-/// once, and a gem that lets the player's blue blocks be dragged to another square.
+/// once, and a gem that lets any blue block be dragged to another square until the player deletes it.
 /// The battle is saved after every turn (an "AUTOSAVING..." note shows for a moment),
 /// so Continue brings it back exactly as it was at the end of the last finished turn.
 /// This script only runs the turn and draws the board; the fighting rules are
@@ -34,6 +34,11 @@ public class BattleScreen : MonoBehaviour
     private const string PotionReadyText = "CLICK TO USE";
     private const string PotionActiveText = "ACTIVE THIS TURN";
     private const string PotionUsedText = "USED UP";
+    private const string GemReadyText = "ALWAYS ON";
+    private const string GemDeletedText = "DELETED";
+
+    // How see-through the gem's picture is once the gem has been deleted.
+    private const float DeletedItemAlpha = 0.25f;
 
     // The battle is a draw when the board has looked exactly the same this many times.
     private const int RepeatsForDraw = 3;
@@ -90,6 +95,8 @@ public class BattleScreen : MonoBehaviour
     [SerializeField] private UnityEngine.UI.Image _potionIcon;
     [SerializeField] private UnityEngine.UI.Text _potionStateLabel;
     [SerializeField] private UnityEngine.UI.Image _gemIcon;
+    [SerializeField] private UnityEngine.UI.Text _gemStateLabel;
+    [SerializeField] private UnityEngine.UI.Button _gemDeleteButton;
 
     private readonly List<BattleCell> _cells = new List<BattleCell>();
     private readonly List<Vector2Int> _blockSquares = new List<Vector2Int>();
@@ -159,6 +166,7 @@ public class BattleScreen : MonoBehaviour
         _resetButton.onClick.AddListener(ResetBattle);
         _backButton.onClick.AddListener(ReturnToHomeScreen);
         _potionButton.onClick.AddListener(UsePotion);
+        _gemDeleteButton.onClick.AddListener(DeleteGem);
     }
 
     /// <summary>The object dragged blocks are put under, so they are drawn on top of the grid.</summary>
@@ -267,7 +275,8 @@ public class BattleScreen : MonoBehaviour
             IsBattleOver = _isBattleOver,
             ResultText = _resultText,
             IsPotionUsed = _items.IsPotionUsed,
-            IsPotionActive = _items.IsPotionActive
+            IsPotionActive = _items.IsPotionActive,
+            IsGemDeleted = _items.IsGemDeleted
         };
 
         _board.CollectPositions(_blockSquares, false);
@@ -338,7 +347,7 @@ public class BattleScreen : MonoBehaviour
         _isRandomOrder = data.IsRandomOrder;
         _isBattleOver = data.IsBattleOver;
         _resultText = data.ResultText;
-        _items.Restore(data.IsPotionUsed, data.IsPotionActive);
+        _items.Restore(data.IsPotionUsed, data.IsPotionActive, data.IsGemDeleted);
 
         _timesPositionSeen.Clear();
         int seenCount = Mathf.Min(data.SeenPositions.Count, data.SeenPositionCounts.Count);
@@ -505,16 +514,35 @@ public class BattleScreen : MonoBehaviour
     }
 
     /// <summary>
+    /// Called when DELETE under the gem is pressed. The gem is gone for the rest of
+    /// this battle, so blue blocks can no longer be moved. RESET brings it back.
+    /// </summary>
+    private void DeleteGem()
+    {
+        if (_isTurnRunning || _items.IsGemDeleted)
+        {
+            GameAudio.Play(GameSound.InvalidMove);
+            return;
+        }
+
+        _items.DeleteGem();
+        _statusLabel.text = "GEM DELETED: BLUE BLOCKS CAN NO LONGER BE MOVED";
+        ShowItems();
+        DrawBoard();
+        Autosave();
+    }
+
+    /// <summary>
     /// True if the player may drag the block on this square to another square right now.
-    /// That is the gem's power: it works on the player's own blue blocks, any number of
-    /// times, but only while the player is still deciding where to place a block.
+    /// That is the gem's power: it works on every blue block, the player's and the enemy's,
+    /// any number of times, but only while the player is still deciding where to place a block.
     /// </summary>
     public bool CanMoveBlock(Vector2Int position)
     {
-        return !_isTurnRunning && !_isBattleOver && BattleItems.CanBeMoved(_board.GetBlock(position));
+        return !_isTurnRunning && !_isBattleOver && _items.CanBeMoved(_board.GetBlock(position));
     }
 
-    /// <summary>Called when the player drops one of their placed blocks on another square.</summary>
+    /// <summary>Called when the player drops a block from the grid on another square.</summary>
     public void TryMoveBlock(Vector2Int from, Vector2Int to)
     {
         // Dropped back where it started: nothing to do, and not a mistake.
@@ -883,9 +911,16 @@ public class BattleScreen : MonoBehaviour
         }
     }
 
-    /// <summary>Makes the item library show whether the potion is ready, active, or used up.</summary>
+    /// <summary>
+    /// Makes the item library show whether the potion is ready, active, or used up,
+    /// and whether the gem is still there or has been deleted.
+    /// </summary>
     private void ShowItems()
     {
+        _gemStateLabel.text = _items.IsGemDeleted ? GemDeletedText : GemReadyText;
+        _gemDeleteButton.gameObject.SetActive(!_items.IsGemDeleted);
+        _gemIcon.canvasRenderer.SetAlpha(_items.IsGemDeleted ? DeletedItemAlpha : 1f);
+
         // A button that cannot be pressed is drawn faded, which is how a used potion looks.
         _potionButton.interactable = !_items.IsPotionUsed;
         _potionStateLabel.text = _items.IsPotionActive ? PotionActiveText
@@ -935,7 +970,7 @@ public class BattleScreen : MonoBehaviour
             return $"\n\nPOTION: +{BattleItems.PotionStrikeBonus} HP PER HIT THIS TURN";
         }
 
-        return BattleItems.CanBeMoved(block) ? "\n\nGEM: DRAG IT TO AN EMPTY SQUARE BEFORE YOU PLACE" : string.Empty;
+        return _items.CanBeMoved(block) ? "\n\nGEM: DRAG IT TO AN EMPTY SQUARE BEFORE YOU PLACE" : string.Empty;
     }
 
     private void HideTooltip()

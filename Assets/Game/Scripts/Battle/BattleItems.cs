@@ -3,8 +3,9 @@
 /// There are two:
 ///   The potion is used once per battle. For the turn it is used on, the
 ///   player's red blocks hit harder.
-///   The gem is a trinket: it is never used up. For the whole battle it lets the
-///   player drag their blue blocks to an empty square before placing a block.
+///   The gem is a trinket: it is never used up. While the player has it, they can
+///   drag any blue block, their own or the enemy's, to an empty square before
+///   placing a block. The player can delete the gem, which ends that power.
 /// Plain C# with no screen code. The enemy has no items.
 /// </summary>
 public class BattleItems
@@ -27,10 +28,13 @@ public class BattleItems
     /// <summary>The extra damage the player's red blocks do right now: the bonus while the potion is active, otherwise 0.</summary>
     public int PlayerStrikeBonus => IsPotionActive ? PotionStrikeBonus : 0;
 
-    /// <summary>True if the gem lets the player move this block: it must be one of the player's own blue blocks.</summary>
-    public static bool CanBeMoved(BattleBlock block)
+    /// <summary>True once the player has deleted the gem in this battle. Blue blocks can no longer be moved.</summary>
+    public bool IsGemDeleted { get; private set; }
+
+    /// <summary>True if the gem lets the player move this block: any blue block, on either side, while the gem is still there.</summary>
+    public bool CanBeMoved(BattleBlock block)
     {
-        return block != null && block.Side == BattleSide.Player && block.Kind.Ability == GemMovableAbility;
+        return !IsGemDeleted && block != null && block.Kind.Ability == GemMovableAbility;
     }
 
     /// <summary>True if the potion makes this block stronger right now.</summary>
@@ -40,11 +44,18 @@ public class BattleItems
             && block.Kind.Ability == PotionBoostedAbility;
     }
 
-    /// <summary>Gives the potion back, for the start of a new battle.</summary>
+    /// <summary>Gives the potion and the gem back, for the start of a new battle.</summary>
     public void Reset()
     {
         IsPotionUsed = false;
         IsPotionActive = false;
+        IsGemDeleted = false;
+    }
+
+    /// <summary>Throws the gem away for the rest of this battle.</summary>
+    public void DeleteGem()
+    {
+        IsGemDeleted = true;
     }
 
     /// <summary>Uses the potion for the current turn. Returns false if it was already used.</summary>
@@ -67,8 +78,9 @@ public class BattleItems
     }
 
     /// <summary>Puts the items back as they were in a saved battle.</summary>
-    public void Restore(bool isPotionUsed, bool isPotionActive)
+    public void Restore(bool isPotionUsed, bool isPotionActive, bool isGemDeleted)
     {
+        IsGemDeleted = isGemDeleted;
         IsPotionUsed = isPotionUsed;
 
         // A potion that was never used cannot be active, whatever the save file says.

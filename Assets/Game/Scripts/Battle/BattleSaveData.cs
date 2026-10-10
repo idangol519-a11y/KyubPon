@@ -50,6 +50,9 @@ public class BattleSaveData
     /// <summary>True when the potion was used on the turn about to be played, so it still counts.</summary>
     public bool IsPotionActive;
 
+    /// <summary>True when the player has deleted the gem in this battle.</summary>
+    public bool IsGemDeleted;
+
     /// <summary>Every block on the grid.</summary>
     public List<BattleSavedBlock> Blocks = new List<BattleSavedBlock>();
 
