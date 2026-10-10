@@ -10,8 +10,10 @@ using System.Collections.Generic;
 public class BattleSaveData
 {
     /// <summary>
-    /// The layout of the save file. Raise it when a field is added, removed, or
-    /// changes meaning, so an old file is ignored instead of being read wrongly.
+    /// The layout of the save file. Raise it when a field is removed or changes
+    /// meaning, so an old file is ignored instead of being read wrongly. A new field
+    /// that is right when left at its default (like the potion fields, where an old
+    /// save simply has an unused potion) does not need a new number.
     /// </summary>
     public const int CurrentFormatVersion = 1;
 
@@ -41,6 +43,12 @@ public class BattleSaveData
 
     /// <summary>The result line shown when the battle is over.</summary>
     public string ResultText;
+
+    /// <summary>True when the potion has already been used in this battle.</summary>
+    public bool IsPotionUsed;
+
+    /// <summary>True when the potion was used on the turn about to be played, so it still counts.</summary>
+    public bool IsPotionActive;
 
     /// <summary>Every block on the grid.</summary>
     public List<BattleSavedBlock> Blocks = new List<BattleSavedBlock>();

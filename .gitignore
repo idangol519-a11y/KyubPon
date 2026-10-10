@@ -46,3 +46,7 @@ crashlytics-build.properties
 # Temporary demo sounds and soundtrack. Third-party files whose license is not confirmed. Kept on this PC only.
 /Assets/Game/Audio/
 /Assets/Game/Audio.meta
+
+# Item pictures whose license is not confirmed yet (see docs/Credits.md). Kept on this PC only.
+/Assets/StreamingAssets/Content/Items/
+/Assets/StreamingAssets/Content/Items.meta
