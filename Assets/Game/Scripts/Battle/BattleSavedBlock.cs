@@ -21,4 +21,7 @@ public class BattleSavedBlock
 
     /// <summary>The block's row, counting from 0 at the top.</summary>
     public int Row;
+
+    /// <summary>How long the block had been on the board when the battle was saved. Keeps its idle bobbing in step after Continue.</summary>
+    public float SecondsSincePlaced;
 }

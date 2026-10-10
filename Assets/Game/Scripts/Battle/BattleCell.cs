@@ -21,10 +21,17 @@ public class BattleCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
     private const float HpHeight = 0.42f;
     private const float HpOutlineWidth = 2f;
 
+    // The idle animation: a placed block bobs gently up and down.
+    // How far it moves from its resting place, and how long one full up-and-down takes.
+    private const float IdleBobHeight = 4f;
+    private const float IdleBobSeconds = 1.2f;
+    private const float FullCircle = Mathf.PI * 2f;
+
     private static readonly Color EnemyMarkColor = new Color(0f, 0f, 0f, 0.6f);
 
     private UnityEngine.UI.Image _squareImage;
     private UnityEngine.UI.Image _blockImage;
+    private RectTransform _blockRect;
     private UnityEngine.UI.Text _enemyMark;
     private UnityEngine.UI.Text _hpText;
     private UnityEngine.UI.Image _areaTint;
@@ -59,6 +66,24 @@ public class BattleCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
         cell.CreateBlockPicture(font);
         cell.Show(null);
         return cell;
+    }
+
+    /// <summary>
+    /// Called by Unity every frame. Bobs the block picture up and down. The bob is timed
+    /// from the moment the block was placed, so each block keeps its own rhythm, even
+    /// when it is pushed to another square.
+    /// </summary>
+    private void Update()
+    {
+        if (_shownBlock == null)
+        {
+            return;
+        }
+
+        // A sine wave swings smoothly between -1 and 1, once per "IdleBobSeconds".
+        float secondsOnBoard = Time.time - _shownBlock.PlacedAtSeconds;
+        float height = Mathf.Sin(secondsOnBoard * FullCircle / IdleBobSeconds) * IdleBobHeight;
+        _blockRect.anchoredPosition = new Vector2(0f, height);
     }
 
     /// <summary>Called by Unity when the mouse moves onto this square. Starts the wait for the rules tooltip.</summary>
@@ -171,6 +196,7 @@ public class BattleCell : MonoBehaviour, IPointerEnterHandler, IPointerExitHandl
         RectTransform blockRect = CreateChild(transform, "Block", Vector2.zero, Vector2.one);
         blockRect.offsetMin = new Vector2(BlockInset, BlockInset);
         blockRect.offsetMax = new Vector2(-BlockInset, -BlockInset);
+        _blockRect = blockRect;
         _blockImage = blockRect.gameObject.AddComponent<UnityEngine.UI.Image>();
         _blockImage.raycastTarget = false;
 

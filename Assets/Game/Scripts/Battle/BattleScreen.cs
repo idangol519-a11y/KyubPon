@@ -289,7 +289,8 @@ public class BattleScreen : MonoBehaviour
                 IsEnemy = block.Side == BattleSide.Enemy,
                 Hp = block.Hp,
                 Column = square.x,
-                Row = square.y
+                Row = square.y,
+                SecondsSincePlaced = Time.time - block.PlacedAtSeconds
             });
         }
 
@@ -335,6 +336,7 @@ public class BattleScreen : MonoBehaviour
 
             BattleBlock block = new BattleBlock(kind, saved.IsEnemy ? BattleSide.Enemy : BattleSide.Player);
             block.RestoreHp(saved.Hp);
+            block.PlacedAtSeconds = Time.time - saved.SecondsSincePlaced;
             _board.Place(block, square);
         }
 
@@ -487,7 +489,10 @@ public class BattleScreen : MonoBehaviour
             return;
         }
 
-        _board.Place(new BattleBlock(kind, BattleSide.Player), position);
+        // The placing time starts the block's idle bobbing, so blocks placed at
+        // different moments bob out of step with each other.
+        BattleBlock block = new BattleBlock(kind, BattleSide.Player) { PlacedAtSeconds = Time.time };
+        _board.Place(block, position);
         GameAudio.Play(GameSound.BlockPlace);
         DrawBoard();
         DrawHand();
@@ -643,6 +648,7 @@ public class BattleScreen : MonoBehaviour
         _statusLabel.text = enemyBlock != null ? $"ENEMY PLACES {enemyBlock.Kind.Name}" : "ENEMY HAS NO ROOM TO PLACE";
         if (enemyBlock != null)
         {
+            enemyBlock.PlacedAtSeconds = Time.time;
             GameAudio.Play(GameSound.EnemyPlace);
         }
         DrawBoard();
