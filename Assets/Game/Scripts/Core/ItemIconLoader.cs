@@ -49,8 +49,8 @@ public static class ItemIconLoader
             return null;
         }
 
-        // Item pictures are drawn smaller than their real size, so they are smoothed.
-        texture.filterMode = FilterMode.Bilinear;
+        // Point filtering keeps pixel art sharp when it is drawn larger than its real size.
+        texture.filterMode = FilterMode.Point;
         texture.wrapMode = TextureWrapMode.Clamp;
 
         Rect wholeImage = new Rect(0f, 0f, texture.width, texture.height);

@@ -34,11 +34,12 @@ public static class BattleSceneBuilder
     // with the item's name, what it does, and its state underneath.
     private const int ItemTextFontSize = 16;
     private const float ItemTextLineSpacing = 1.4f;
-    private const float FirstItemOffsetFromTop = 56f;
-    private const float SecondItemOffsetFromTop = 366f;
+    private const float FirstItemOffsetFromTop = 48f;
+    private const float SecondItemOffsetFromTop = 350f;
     private const float ItemNameOffset = 124f;
     private const float ItemDescriptionOffset = 164f;
     private const float ItemStateOffset = 264f;
+    private const float ItemDeleteButtonOffset = 296f;
     private const float BottomRowOffsetFromBottom = 30f;
     private const float PaletteOffsetFromCenter = -350f;
     private const float PaletteSpacing = 12f;
@@ -71,6 +72,7 @@ public static class BattleSceneBuilder
     private static readonly Vector2 ItemNameSize = new Vector2(380f, 32f);
     private static readonly Vector2 ItemDescriptionSize = new Vector2(380f, 96f);
     private static readonly Vector2 ItemStateSize = new Vector2(380f, 24f);
+    private static readonly Vector2 ItemDeleteButtonSize = new Vector2(160f, 24f);
 
     // Shown only when an item's PNG is missing: a plain square in the item's color.
     private static readonly Color PotionFallbackColor = new Color(0.90f, 0.30f, 0.25f);
@@ -216,7 +218,7 @@ public static class BattleSceneBuilder
 
     /// <summary>
     /// The column on the left edge that holds the player's items: the potion, which is
-    /// clicked to use it, and the gem, which works by itself for the whole battle.
+    /// clicked to use it, and the gem, which works by itself until the player deletes it.
     /// </summary>
     private static void BuildItemLibrary(MenuUiBuilder ui, Transform canvas, SerializedObject data)
     {
@@ -240,8 +242,15 @@ public static class BattleSceneBuilder
         SceneBuilderTools.SetReference(data, "_potionStateLabel", potionState);
 
         UnityEngine.UI.Image gem = BuildItem(ui, library.transform, "Gem", "GEM", GemFallbackColor, SecondItemOffsetFromTop,
-            "TRINKET. DRAG YOUR BLUE BLOCKS TO ANY EMPTY SQUARE BEFORE YOU PLACE", "ALWAYS ON", out _);
+            "TRINKET. BEFORE YOU PLACE, DRAG ANY BLUE BLOCK TO AN EMPTY SQUARE", "ALWAYS ON", out UnityEngine.UI.Text gemState);
         SceneBuilderTools.SetReference(data, "_gemIcon", gem);
+        SceneBuilderTools.SetReference(data, "_gemStateLabel", gemState);
+
+        // Throws the gem away for the rest of the battle.
+        UnityEngine.UI.Button delete = ui.CreateTextButton(library.transform, "GemDeleteButton", "DELETE", ItemTextFontSize);
+        SceneBuilderTools.PlaceAtEdge((RectTransform)delete.transform, TopCenter,
+            new Vector2(0f, -SecondItemOffsetFromTop - ItemDeleteButtonOffset), ItemDeleteButtonSize);
+        SceneBuilderTools.SetReference(data, "_gemDeleteButton", delete);
     }
 
     /// <summary>

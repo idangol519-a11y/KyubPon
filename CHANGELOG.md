@@ -6,6 +6,15 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-10-10
+
+### Added
+- A DELETE button under the gem. It throws the gem away for the rest of the battle, after which blue blocks can no longer be moved. RESET brings the gem back. The choice is part of the autosave.
+
+### Changed
+- The gem now lets you move every blue block on the grid, the enemy's as well as your own.
+- New potion and gem pictures: Idan's own 64 by 64 pixel art. They replace the two watermarked images, and they are now stored in Git.
+
 ## [0.17.0] - 2026-10-10
 
 ### Added
