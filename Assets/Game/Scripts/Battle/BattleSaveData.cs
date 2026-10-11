@@ -53,6 +53,24 @@ public class BattleSaveData
     /// <summary>True when the player has deleted the gem in this battle.</summary>
     public bool IsGemDeleted;
 
+    /// <summary>The dollars the player has.</summary>
+    public int Money;
+
+    /// <summary>True when the battle is over and the shop is on screen.</summary>
+    public bool IsShopOpen;
+
+    /// <summary>The skin names of the blocks on sale in the shop, one per slot.</summary>
+    public List<string> ShopKinds = new List<string>();
+
+    /// <summary>The price of each block in <see cref="ShopKinds"/>.</summary>
+    public List<int> ShopPrices = new List<int>();
+
+    /// <summary>Whether each block in <see cref="ShopKinds"/> has been bought.</summary>
+    public List<bool> ShopSold = new List<bool>();
+
+    /// <summary>The skin names of bought blocks that are waiting to join the hand in the next battle.</summary>
+    public List<string> BoughtBlocks = new List<string>();
+
     /// <summary>Every block on the grid.</summary>
     public List<BattleSavedBlock> Blocks = new List<BattleSavedBlock>();
 

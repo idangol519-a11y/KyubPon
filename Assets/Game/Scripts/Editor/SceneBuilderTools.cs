@@ -117,6 +117,26 @@ public static class SceneBuilderTools
     }
 
     /// <summary>
+    /// Fills in a [SerializeField] list slot on a script (an array), the same as
+    /// dragging several objects into it in the Inspector.
+    /// </summary>
+    public static void SetReferences(SerializedObject target, string fieldName, Object[] values)
+    {
+        SerializedProperty property = target.FindProperty(fieldName);
+        if (property == null || !property.isArray)
+        {
+            Debug.LogError($"[Error] {target.targetObject.GetType().Name} has no list field named {fieldName}.");
+            return;
+        }
+
+        property.arraySize = values.Length;
+        for (int index = 0; index < values.Length; index++)
+        {
+            property.GetArrayElementAtIndex(index).objectReferenceValue = values[index];
+        }
+    }
+
+    /// <summary>
     /// Fills in a [SerializeField] slot on a script, the same as dragging an object
     /// into that slot in the Inspector.
     /// </summary>
