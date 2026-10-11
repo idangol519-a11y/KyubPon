@@ -47,6 +47,17 @@ public static class BattleSceneBuilder
     private const float SizeValueWidth = 96f;
     private const float GapBetweenControlGroups = 96f;
 
+    // The shop: a box over the middle of the grid with a row of blocks on sale.
+    private const float ShopTitleOffset = 32f;
+    private const float ShopMoneyOffset = 112f;
+    private const float ShopNoteOffset = 160f;
+    private const float ShopSlotsOffset = 216f;
+    private const float ShopSlotSpacing = 250f;
+    private const float ShopSlotNameOffset = 124f;
+    private const float ShopSlotPriceOffset = 168f;
+    private const float ShopNextButtonOffset = 32f;
+    private const float ShopBorderWidth = 4f;
+
     private const float TooltipWidth = 760f;
     private const int TooltipPadding = 28;
     private const float TooltipBorderWidth = 4f;
@@ -80,6 +91,11 @@ public static class BattleSceneBuilder
     private static readonly Color ItemStateColor = new Color(1f, 0.82f, 0.2f);
     private static readonly Vector2 PaletteSize = new Vector2(1100f, 100f);
     private static readonly Vector2 BottomButtonSize = new Vector2(200f, 100f);
+    private static readonly Vector2 ShopSize = new Vector2(1100f, 560f);
+    private static readonly Vector2 ShopLineSize = new Vector2(1100f, 56f);
+    private static readonly Vector2 ShopSlotSize = new Vector2(220f, 220f);
+    private static readonly Vector2 ShopPriceButtonSize = new Vector2(200f, 48f);
+    private static readonly Vector2 ShopNextButtonSize = new Vector2(480f, 56f);
     private static readonly Color TooltipBackgroundColor = new Color(0.02f, 0.02f, 0.04f, 1f);
     private static readonly Color TooltipBorderColor = new Color(0.92f, 0.92f, 0.92f);
 
@@ -129,6 +145,9 @@ public static class BattleSceneBuilder
         BuildItemLibrary(ui, canvas, data);
         BuildPalette(ui, canvas, data);
         BuildBottomButtons(ui, canvas, data);
+
+        // The shop is drawn over the grid, so it is created after it.
+        BuildShop(ui, canvas, data);
 
         // The tooltip is created last so it is drawn on top of everything else.
         BuildTooltip(ui, canvas, data);
@@ -305,6 +324,78 @@ public static class BattleSceneBuilder
         UnityEngine.UI.Button button = ui.CreateTextButton(canvas, objectName, caption, ControlFontSize);
         SceneBuilderTools.PlaceAtEdge((RectTransform)button.transform, BottomCenter, new Vector2(offsetFromCenter, BottomRowOffsetFromBottom), BottomButtonSize);
         SceneBuilderTools.SetReference(data, fieldName, button);
+    }
+
+    /// <summary>
+    /// The shop that opens when a battle ends: the player's money, a row of blocks on
+    /// sale, and the button that starts the next battle. It starts hidden.
+    /// </summary>
+    private static void BuildShop(MenuUiBuilder ui, Transform canvas, SerializedObject data)
+    {
+        GameObject shop = new GameObject("Shop", typeof(RectTransform));
+        shop.transform.SetParent(canvas, false);
+        SceneBuilderTools.PlaceAtEdge((RectTransform)shop.transform, ScreenCenter, new Vector2(GridOffsetFromMiddle, GridOffsetFromCenter), ShopSize);
+
+        // The background also stops clicks from reaching the grid underneath.
+        shop.AddComponent<UnityEngine.UI.Image>().color = TooltipBackgroundColor;
+        UnityEngine.UI.Outline border = shop.AddComponent<UnityEngine.UI.Outline>();
+        border.effectColor = TooltipBorderColor;
+        border.effectDistance = new Vector2(ShopBorderWidth, -ShopBorderWidth);
+
+        UnityEngine.UI.Text title = ui.CreateLabel(shop.transform, "Title", "SHOP", HeadingFontSize);
+        SceneBuilderTools.PlaceAtEdge(title.rectTransform, TopCenter, new Vector2(0f, -ShopTitleOffset), ShopLineSize);
+
+        UnityEngine.UI.Text money = ui.CreateLabel(shop.transform, "Money", "YOU HAVE $0", NoteFontSize);
+        money.color = ItemStateColor;
+        SceneBuilderTools.PlaceAtEdge(money.rectTransform, TopCenter, new Vector2(0f, -ShopMoneyOffset), ShopLineSize);
+
+        UnityEngine.UI.Text note = ui.CreateLabel(shop.transform, "Note", "BOUGHT BLOCKS JOIN YOUR HAND IN THE NEXT BATTLE", ItemTextFontSize);
+        SceneBuilderTools.PlaceAtEdge(note.rectTransform, TopCenter, new Vector2(0f, -ShopNoteOffset), ShopLineSize);
+
+        // The slots are spread evenly around the middle of the shop.
+        Object[] slots = new Object[BattleShop.OfferCount];
+        for (int index = 0; index < slots.Length; index++)
+        {
+            float offsetFromMiddle = (index - (slots.Length - 1) / 2f) * ShopSlotSpacing;
+            slots[index] = BuildShopSlot(ui, shop.transform, index, offsetFromMiddle);
+        }
+
+        UnityEngine.UI.Button next = ui.CreateTextButton(shop.transform, "NextBattleButton", "NEXT BATTLE", ControlFontSize);
+        SceneBuilderTools.PlaceAtEdge((RectTransform)next.transform, BottomCenter, new Vector2(0f, ShopNextButtonOffset), ShopNextButtonSize);
+
+        SceneBuilderTools.SetReference(data, "_shopPanel", shop);
+        SceneBuilderTools.SetReference(data, "_shopMoneyLabel", money);
+        SceneBuilderTools.SetReferences(data, "_shopSlots", slots);
+        SceneBuilderTools.SetReference(data, "_nextBattleButton", next);
+        shop.SetActive(false);
+    }
+
+    /// <summary>Builds one block on sale: its picture, its name, and its price button.</summary>
+    private static BattleShopSlot BuildShopSlot(MenuUiBuilder ui, Transform shop, int index, float offsetFromMiddle)
+    {
+        GameObject slotObject = new GameObject($"Slot {index}", typeof(RectTransform));
+        slotObject.transform.SetParent(shop, false);
+        SceneBuilderTools.PlaceAtEdge((RectTransform)slotObject.transform, TopCenter, new Vector2(offsetFromMiddle, -ShopSlotsOffset), ShopSlotSize);
+
+        GameObject pictureObject = new GameObject("Picture", typeof(RectTransform));
+        pictureObject.transform.SetParent(slotObject.transform, false);
+        SceneBuilderTools.PlaceAtEdge((RectTransform)pictureObject.transform, TopCenter, Vector2.zero, ItemPictureSize);
+        UnityEngine.UI.Image picture = pictureObject.AddComponent<UnityEngine.UI.Image>();
+
+        UnityEngine.UI.Text name = ui.CreateLabel(slotObject.transform, "Name", "BLOCK", NoteFontSize);
+        SceneBuilderTools.PlaceAtEdge(name.rectTransform, TopCenter, new Vector2(0f, -ShopSlotNameOffset), ItemNameSize);
+
+        UnityEngine.UI.Button price = ui.CreateTextButton(slotObject.transform, "PriceButton", "$0", ControlFontSize);
+        SceneBuilderTools.PlaceAtEdge((RectTransform)price.transform, TopCenter, new Vector2(0f, -ShopSlotPriceOffset), ShopPriceButtonSize);
+
+        BattleShopSlot slot = slotObject.AddComponent<BattleShopSlot>();
+        SerializedObject slotData = new SerializedObject(slot);
+        SceneBuilderTools.SetReference(slotData, "_picture", picture);
+        SceneBuilderTools.SetReference(slotData, "_nameLabel", name);
+        SceneBuilderTools.SetReference(slotData, "_priceButton", price);
+        SceneBuilderTools.SetReference(slotData, "_priceLabel", price.GetComponent<UnityEngine.UI.Text>());
+        slotData.ApplyModifiedPropertiesWithoutUndo();
+        return slot;
     }
 
     /// <summary>

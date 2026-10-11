@@ -15,6 +15,8 @@ using UnityEngine.SceneManagement;
 /// Holding the mouse over a block for a moment shows a tooltip with its rules.
 /// The item library on the left holds the player's items: a potion that can be used
 /// once, and a gem that lets any blue block be dragged to another square until the player deletes it.
+/// Each enemy block the player destroys pays 1 dollar. When a battle ends the shop
+/// opens: the player can buy blocks there, and they join the hand in the next battle.
 /// The battle is saved after every turn (an "AUTOSAVING..." note shows for a moment),
 /// so Continue brings it back exactly as it was at the end of the last finished turn.
 /// This script only runs the turn and draws the board; the fighting rules are
@@ -49,6 +51,11 @@ public class BattleScreen : MonoBehaviour
     private const int StartRows = BattleGridSize.MinimumRows;
     private const float GapBetweenCells = 8f;
     private const float PaletteCubeSize = 64f;
+
+    // The room the hand has under the grid, and the gap between its blocks. A hand that
+    // has grown with bought blocks is drawn with smaller blocks so it still fits.
+    private const float HandAreaWidth = 760f;
+    private const float GapBetweenHandBlocks = 12f;
 
     // Pauses that make a turn slow enough to follow.
     private const float EnemyThinkSeconds = 0.6f;
@@ -97,6 +104,10 @@ public class BattleScreen : MonoBehaviour
     [SerializeField] private UnityEngine.UI.Image _gemIcon;
     [SerializeField] private UnityEngine.UI.Text _gemStateLabel;
     [SerializeField] private UnityEngine.UI.Button _gemDeleteButton;
+    [SerializeField] private GameObject _shopPanel;
+    [SerializeField] private UnityEngine.UI.Text _shopMoneyLabel;
+    [SerializeField] private BattleShopSlot[] _shopSlots;
+    [SerializeField] private UnityEngine.UI.Button _nextBattleButton;
 
     private readonly List<BattleCell> _cells = new List<BattleCell>();
     private readonly List<Vector2Int> _blockSquares = new List<Vector2Int>();
@@ -120,6 +131,10 @@ public class BattleScreen : MonoBehaviour
     private readonly BattleHand _playerHand = new BattleHand();
     private readonly BattleHand _enemyHand = new BattleHand();
     private readonly BattleItems _items = new BattleItems();
+    private readonly BattleShop _shop = new BattleShop();
+
+    // True while the shop is on screen, which is from the end of a battle until the next one starts.
+    private bool _isShopOpen;
     private readonly List<GameObject> _paletteCubes = new List<GameObject>();
 
     // True once a winner or a draw has been announced. Only RESET and BACK work then.
@@ -167,6 +182,11 @@ public class BattleScreen : MonoBehaviour
         _backButton.onClick.AddListener(ReturnToHomeScreen);
         _potionButton.onClick.AddListener(UsePotion);
         _gemDeleteButton.onClick.AddListener(DeleteGem);
+        _nextBattleButton.onClick.AddListener(ResetBattle);
+        for (int index = 0; index < _shopSlots.Length; index++)
+        {
+            _shopSlots[index].Setup(this, index);
+        }
     }
 
     /// <summary>The object dragged blocks are put under, so they are drawn on top of the grid.</summary>
@@ -215,11 +235,17 @@ public class BattleScreen : MonoBehaviour
         _orderLabel.text = _isRandomOrder ? OrderRandomText : OrderLeftToRightText;
     }
 
-    /// <summary>Clears the grid and the counters and deals both sides a new random hand.</summary>
+    /// <summary>
+    /// Clears the grid and the counters and deals both sides a new random hand.
+    /// Blocks bought in the shop are added to the player's hand. Money is kept.
+    /// </summary>
     private void StartNewBattle()
     {
         _board.Clear();
         _playerHand.Deal(_random);
+        _shop.MoveBoughtBlocksTo(_playerHand);
+        _isShopOpen = false;
+        ShowShop();
         _enemyHand.Deal(_random);
         _turnNumber = 1;
         _enemyBlocksDestroyed = 0;
@@ -276,8 +302,11 @@ public class BattleScreen : MonoBehaviour
             ResultText = _resultText,
             IsPotionUsed = _items.IsPotionUsed,
             IsPotionActive = _items.IsPotionActive,
-            IsGemDeleted = _items.IsGemDeleted
+            IsGemDeleted = _items.IsGemDeleted,
+            Money = _shop.Money,
+            IsShopOpen = _isShopOpen
         };
+        CaptureShop(data);
 
         _board.CollectPositions(_blockSquares, false);
         foreach (Vector2Int square in _blockSquares)
@@ -304,6 +333,56 @@ public class BattleScreen : MonoBehaviour
         }
 
         return data;
+    }
+
+    /// <summary>Copies the blocks on sale and the blocks already bought into save data.</summary>
+    private void CaptureShop(BattleSaveData data)
+    {
+        for (int index = 0; index < BattleShop.OfferCount; index++)
+        {
+            BattleCubeKind kind = _shop.GetOfferKind(index);
+            data.ShopKinds.Add(kind != null ? kind.SkinName : string.Empty);
+            data.ShopPrices.Add(_shop.GetOfferPrice(index));
+            data.ShopSold.Add(_shop.IsOfferSold(index));
+        }
+
+        for (int index = 0; index < _shop.BoughtCount; index++)
+        {
+            data.BoughtBlocks.Add(_shop.GetBoughtBlock(index).SkinName);
+        }
+    }
+
+    /// <summary>
+    /// Puts the money, the bought blocks, and the shop back from save data. If the shop
+    /// was open but its blocks cannot be read, it is simply filled with new ones.
+    /// </summary>
+    private void RestoreShop(BattleSaveData data)
+    {
+        _shop.RestoreMoney(data.Money);
+        _shop.ClearBoughtBlocks();
+        foreach (string kindName in data.BoughtBlocks)
+        {
+            BattleCubeKind kind = BattleCubeKind.FindBySkinName(kindName);
+            if (kind != null)
+            {
+                _shop.RestoreBoughtBlock(kind);
+            }
+        }
+
+        _isShopOpen = data.IsShopOpen && data.IsBattleOver;
+        bool hasEverySlot = data.ShopKinds.Count == BattleShop.OfferCount
+            && data.ShopPrices.Count == BattleShop.OfferCount && data.ShopSold.Count == BattleShop.OfferCount;
+        for (int index = 0; hasEverySlot && index < BattleShop.OfferCount; index++)
+        {
+            BattleCubeKind kind = BattleCubeKind.FindBySkinName(data.ShopKinds[index]);
+            hasEverySlot = kind != null;
+            _shop.RestoreOffer(index, kind, data.ShopPrices[index], data.ShopSold[index]);
+        }
+
+        if (_isShopOpen && !hasEverySlot)
+        {
+            _shop.Restock(_random);
+        }
     }
 
     private static void CaptureHand(BattleHand hand, List<string> kindNames)
@@ -350,6 +429,7 @@ public class BattleScreen : MonoBehaviour
         _isBattleOver = data.IsBattleOver;
         _resultText = data.ResultText;
         _items.Restore(data.IsPotionUsed, data.IsPotionActive, data.IsGemDeleted);
+        RestoreShop(data);
 
         _timesPositionSeen.Clear();
         int seenCount = Mathf.Min(data.SeenPositions.Count, data.SeenPositionCounts.Count);
@@ -361,6 +441,7 @@ public class BattleScreen : MonoBehaviour
         RebuildCells();
         DrawHand();
         ShowItems();
+        ShowShop();
         ShowActivationOrder();
         ShowStats();
         ShowWhoseTurn();
@@ -697,8 +778,13 @@ public class BattleScreen : MonoBehaviour
     private void EndBattle(string result, GameSound sound)
     {
         _isBattleOver = true;
-        _resultText = result + ". PRESS RESET";
+        _resultText = result + ". THE SHOP IS OPEN";
         GameAudio.Play(sound);
+
+        // The shop opens after every battle, whatever the result, with new blocks on sale.
+        _shop.Restock(_random);
+        _isShopOpen = true;
+        ShowShop();
     }
 
     /// <summary>
@@ -752,6 +838,7 @@ public class BattleScreen : MonoBehaviour
             if (destroyed.Side == BattleSide.Enemy)
             {
                 _enemyBlocksDestroyed++;
+                _shop.EarnForKill();
             }
             else
             {
@@ -807,12 +894,17 @@ public class BattleScreen : MonoBehaviour
         }
         _paletteCubes.Clear();
 
+        // Share the room between the blocks, but never draw them larger than their normal size.
+        int blockCount = Mathf.Max(1, _playerHand.Count);
+        float roomPerBlock = (HandAreaWidth - GapBetweenHandBlocks * (blockCount - 1)) / blockCount;
+        float blockSize = Mathf.Min(PaletteCubeSize, Mathf.Floor(roomPerBlock));
+
         for (int index = 0; index < _playerHand.Count; index++)
         {
             BattlePaletteCube cube = BattlePaletteCube.Create(_palette, _playerHand.GetBlock(index), this, _dragLayer);
             UnityEngine.UI.LayoutElement size = cube.gameObject.AddComponent<UnityEngine.UI.LayoutElement>();
-            size.preferredWidth = PaletteCubeSize;
-            size.preferredHeight = PaletteCubeSize;
+            size.preferredWidth = blockSize;
+            size.preferredHeight = blockSize;
             _paletteCubes.Add(cube.gameObject);
         }
     }
@@ -935,8 +1027,46 @@ public class BattleScreen : MonoBehaviour
 
     private void ShowStats()
     {
-        _statsLabel.text = $"TURN {_turnNumber}     HAND: YOU {_playerHand.Count} / ENEMY {_enemyHand.Count}     " +
+        _statsLabel.text = $"TURN {_turnNumber}   MONEY ${_shop.Money}   HAND: YOU {_playerHand.Count} / ENEMY {_enemyHand.Count}   " +
             $"DESTROYED: ENEMY {_enemyBlocksDestroyed} / YOURS {_playerBlocksDestroyed}";
+    }
+
+    /// <summary>Called when a price button in the shop is pressed. "index" is the slot, counting from 0.</summary>
+    public void BuyShopOffer(int index)
+    {
+        if (!_isShopOpen || !_shop.Buy(index))
+        {
+            GameAudio.Play(GameSound.InvalidMove);
+            return;
+        }
+
+        GameAudio.Play(GameSound.BlockPlace);
+        ShowShop();
+        ShowStats();
+        Autosave();
+    }
+
+    /// <summary>Shows or hides the shop, and makes it show the money, the blocks on sale, and which are sold.</summary>
+    private void ShowShop()
+    {
+        // The shop's blocks have tooltips too, and a hidden shop cannot tell the screen the mouse left.
+        if (!_isShopOpen && _shopPanel.activeSelf)
+        {
+            StopHover();
+        }
+
+        _shopPanel.SetActive(_isShopOpen);
+        if (!_isShopOpen)
+        {
+            return;
+        }
+
+        _shopMoneyLabel.text = $"YOU HAVE ${_shop.Money}     BOUGHT: {_shop.BoughtCount}";
+        for (int index = 0; index < _shopSlots.Length; index++)
+        {
+            _shopSlots[index].Show(_shop.GetOfferKind(index), _shop.GetOfferPrice(index),
+                _shop.IsOfferSold(index), _shop.CanBuy(index));
+        }
     }
 
     /// <summary>

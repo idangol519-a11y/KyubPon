@@ -6,6 +6,18 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.20.0] - 2026-10-11
+
+### Added
+- Money: every enemy block you destroy pays $1. The amount shows in the line above the grid.
+- Shop: it opens when a battle ends, whatever the result. It offers 4 random blocks at random prices ($2 to $4, or $6 to $8 for the orange block). Press a price to buy. A block you cannot pay for has a greyed-out price.
+- Bought blocks join your hand at the start of the next battle, on top of the 10 dealt ones. NEXT BATTLE in the shop (or RESET) starts it. Money carries over from battle to battle; New Game starts again at $0.
+- Money, the shop's blocks, and bought blocks are part of the autosave.
+
+### Changed
+- When the hand holds more than 10 blocks, they are drawn smaller so the row still fits.
+- The result line now ends with "THE SHOP IS OPEN" in place of "PRESS RESET".
+
 ## [0.19.0] - 2026-10-10
 
 ### Added
